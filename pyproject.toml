@@ -1,0 +1,45 @@
+[build-system]
+requires = ["setuptools>=61", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "xlearner-hyperparam-sim"
+version = "0.1.0"
+description = "Simulation framework for X-learner hyperparameter tuning experiments"
+authors = [
+    { name = "Gabriella Messenger" }
+]
+requires-python = ">=3.10"
+readme = "README.md"
+
+dependencies = [
+    "numpy>=1.24",
+    "scipy>=1.10",
+    "pandas>=2.0",
+    "scikit-learn>=1.3",
+    "econml>=0.16.0",
+    "xgboost>=2.0",
+    "optuna>=3.0",
+    "matplotlib>=3.8"
+]
+
+[project.optional-dependencies]
+dev = [
+    "ipykernel",
+    "black",
+    "isort",
+    "mypy",
+    "pytest",
+    "pytest-cov"
+]
+
+[tool.setuptools.packages.find]
+where = ["src"]
+exclude = ["tests"]
+
+[tool.black]
+line-length = 88
+target-version = ["py310"]
+
+[tool.isort]
+profile = "black"
