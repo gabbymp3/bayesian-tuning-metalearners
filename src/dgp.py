@@ -106,7 +106,7 @@ class SimulatedDataset:
             + 0.2 * Xc[:, 2]
             - 0.1 * Xc[:, 3]**2
         )
-        return 1 / (1 + np.exp(-logits*self.alpha + 0.35))
+        return 1 / (1 + np.exp(-logits*self.alpha + 0.3))
 
     # -------------------------
     # OUTCOME AND TREATMENT
