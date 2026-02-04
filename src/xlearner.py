@@ -10,23 +10,23 @@ class XlearnerWrapper(BaseEstimator):
     '''
     Wrapper for EconML Xlearner to make it compatible with sklearn API for HP tuning.
     '''
-    def __init__(self, models, propensity_model, cate_models):
+    def __init__(self, models, propensity_model, cate_models, **kwargs):
         self.models = models
         self.propensity_model = propensity_model
         self.cate_models = cate_models
         self._est = None
-        #self.true_tau = None
-    
-    '''
+
+        # flatten nested params
+        if models is not None and 'models__' in str(kwargs):
+            models.set_params(**{k.replace('models__', ''): v for k, v in kwargs.items() if k.startswith('models__')})
+        if propensity_model is not None and 'propensity_model__' in str(kwargs):
+            propensity_model.set_params(**{k.replace('propensity_model__', ''): v for k, v in kwargs.items() if k.startswith('propensity_model__')})
+        if cate_models is not None and 'cate_models__' in str(kwargs):
+            cate_models.set_params(**{k.replace('cate_models__', ''): v for k, v in kwargs.items() if k.startswith('cate_models__')})
+
+
     def get_params(self, deep=True):
-        return {"est": self._est}
-
-    def set_params(self, **params):
-        for k, v in params.items():
-            setattr(self, k, v)
-        return self
-    '''
-
+        return super().get_params(deep=deep)
     
     
     def fit(self, Y, W, X=None):
