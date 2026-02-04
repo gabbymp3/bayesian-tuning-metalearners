@@ -1,8 +1,9 @@
 from econml.metalearners import XLearner
-from sklearn.ensemble import RandomForestRegressor
+from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from catboost import CatBoostRegressor
 from sklearn.base import BaseEstimator
 import numpy as np
+
 
 
 class XlearnerWrapper(BaseEstimator):
@@ -52,4 +53,3 @@ class XlearnerWrapper(BaseEstimator):
         y_hat[W == 1] = self._est.models[1].predict(X[W == 1])
 
         return y_hat
-

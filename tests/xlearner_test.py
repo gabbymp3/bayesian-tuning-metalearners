@@ -1,15 +1,11 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
-
 import numpy as np
 import pytest
-from src.xlearner import XlearnerWrapper
-from econml.metalearners import XLearner
-from src.dgp import SimulatedDataset
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from econml.metalearners import XLearner
+from src.dgp import SimulatedDataset
+from src.xlearner import XlearnerWrapper
+
 
 
 @pytest.fixture
@@ -22,6 +18,15 @@ def naive_dataset():
     W = np.array([0, 1, 0])
     Y = np.array([1, 2, 3])
     return X, W, Y
+
+@pytest.fixture
+def zero_tau_dataset():
+    dgp = SimulatedDataset(N=2000, d=10, alpha=0.5, seed=42)
+    dgp.tau = np.zeros(dgp.N)
+    dgp.mu1 = dgp.mu0.copy()
+    dgp.Y1 = dgp.Y0.copy()
+    dgp.Y = dgp.Y0.copy()
+    return dgp
 
 def test_xlearner_wrapper_init():
     wrapper = XlearnerWrapper(models=LinearRegression(),
@@ -88,4 +93,15 @@ def test_predict_outcome_responds_to_treatment_change(naive_dataset):
     y_hat_flipped = wrapper.predict_outcome(X, W_flipped)
 
     assert y_hat_original.shape == y_hat_flipped.shape
-    assert y_hat_original != y_hat_flipped
+    assert np.any(y_hat_original != y_hat_flipped)
+
+
+def test_zero_tau(zero_tau_dataset):
+    wrapper = XlearnerWrapper(
+        models=RandomForestRegressor(n_estimators=100, random_state=0),
+        propensity_model=RandomForestClassifier(n_estimators=100, random_state=0),
+        cate_models=RandomForestRegressor(n_estimators=100, random_state=0),
+    )
+    wrapper.fit(zero_tau_dataset.Y, zero_tau_dataset.W, X=zero_tau_dataset.X)
+    tau_hat = wrapper.predict(zero_tau_dataset.X)
+    assert np.allclose(tau_hat, np.zeros(zero_tau_dataset.N), atol=1.5)
