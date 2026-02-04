@@ -35,7 +35,7 @@ def cross_predict_tau(estimator_type, estimator_params, X, W, Y, cv=5):
 
     for fold, (train_idx, _) in enumerate(kfold.split(X)):
         est = estimator_type(**estimator_params)
-        est.fit(X[train_idx], W[train_idx], Y[train_idx])
+        est.fit(Y[train_idx], W[train_idx], X[train_idx])
         tau_fold = est.predict(X)
 
         tau_oof += tau_fold / cv
