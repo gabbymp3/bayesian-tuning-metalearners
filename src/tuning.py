@@ -1,16 +1,9 @@
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
-
 from itertools import product
 import numpy as np
-
-from sklearn.model_selection import KFold
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
+from sklearn.model_selection import KFold, ParameterSampler
 from sklearn.base import clone
 from skopt import BayesSearchCV
 from skopt.space import Real, Categorical, Integer
-
 from src.metrics_helpers import outcome_mse
 from src.xlearner import XlearnerWrapper
 
@@ -29,7 +22,6 @@ def grid_search(estimator, param_grid, X, Y, W, cv=5, random_state=123, verbose=
     """
 
     kf = KFold(n_splits=cv, shuffle=True, random_state=random_state)
-
     best_score = np.inf
     best_params = None
     best_estimator = None
@@ -51,6 +43,53 @@ def grid_search(estimator, param_grid, X, Y, W, cv=5, random_state=123, verbose=
 
             mse = outcome_mse(est, X_te, Y_te, W_te)
             fold_scores.append(mse)
+
+        avg_score = np.mean(fold_scores)
+
+        if verbose:
+            print(f"Params {params} | MSE = {avg_score:.4f}")
+
+        if avg_score < best_score:
+            best_score = avg_score
+            best_params = params
+            best_estimator = clone(estimator).set_params(**params)
+            best_estimator.fit(X, Y, W=W)
+
+    return best_estimator, best_params, best_score
+
+
+def random_search(estimator, param_dist, X, Y, W, cv=5, n_iter=20, random_state=123, verbose=False, n_jobs=-1):
+    """
+    Manual RandomSearchCV for XlearnerWrapper
+    """
+
+    kf = KFold(n_splits=cv, shuffle=True, random_state=random_state)
+    best_score = np.inf
+    best_params = None
+    best_estimator = None
+
+    for params in ParameterSampler(param_dist, n_iter=n_iter, random_state=random_state):
+        fold_scores = []
+
+        for train_idx, test_idx in kf.split(X):
+            X_tr, X_te = X[train_idx], X[test_idx]
+            Y_tr, Y_te = Y[train_idx], Y[test_idx]
+            W_tr, W_te = W[train_idx], W[test_idx]
+
+            if (np.sum(W_tr == 0) == 0 or np.sum(W_tr == 1) == 0 or
+                np.sum(W_te == 0) == 0 or np.sum(W_te == 1) == 0):
+                continue
+
+            est = clone(estimator)
+            est.set_params(**params)
+            est.fit(X_tr, Y_tr, W=W_tr)
+
+            mse = outcome_mse(est, X_te, Y_te, W_te)
+            if not np.isnan(mse):
+                fold_scores.append(mse)
+                
+        if len(fold_scores) == 0:
+            continue
 
         avg_score = np.mean(fold_scores)
 
