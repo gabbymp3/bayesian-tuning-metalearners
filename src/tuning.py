@@ -23,7 +23,7 @@ def expand_param_grid(param_grid):
         yield dict(zip(keys, combo))
 
 
-def causal_grid_search(estimator, param_grid, X, Y, W, cv=5, random_state=123, verbose=False, n_jobs=-1):
+def grid_search(estimator, param_grid, X, Y, W, cv=5, random_state=123, verbose=False, n_jobs=-1):
     """
     Manual GridSearchCV for XlearnerWrapper
     """

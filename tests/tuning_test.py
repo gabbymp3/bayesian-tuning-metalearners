@@ -10,7 +10,7 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from econml.metalearners import XLearner
 from src.dgp import SimulatedDataset
 from src.xlearner import XlearnerWrapper
-from src.tuning import causal_grid_search
+from src.tuning import grid_search
 
 @pytest.fixture
 def dataset():
@@ -27,7 +27,7 @@ def test_tune_grid_search(dataset):
         'models__max_depth': [3, 5, 8],
         'models__min_samples_leaf': [1, 5, 10],
     }
-    best_wrapper, best_params, best_score = causal_grid_search(
+    best_wrapper, best_params, best_score = grid_search(
         wrapper, param_grid, dataset.X, dataset.Y, dataset.W, cv=3, verbose=0
     )
     assert isinstance(best_wrapper, XlearnerWrapper)
