@@ -5,7 +5,6 @@ from sklearn.base import BaseEstimator
 import numpy as np
 
 
-
 class XlearnerWrapper(BaseEstimator):
     '''
     Wrapper for EconML Xlearner to make it compatible with sklearn API for HP tuning.
@@ -27,14 +26,18 @@ class XlearnerWrapper(BaseEstimator):
 
     def get_params(self, deep=True):
         return super().get_params(deep=deep)
-    
-    
-    def fit(self, Y, W, X=None):
+
+    def fit(self, X, Y, **fit_params):
+        W = fit_params.get("W", None)
+        if W is None:
+            raise ValueError("Treatment indicator W must be passed via fit parameter 'W'.")
+
         self._est = XLearner(
             models=self.models,
             propensity_model=self.propensity_model,
             cate_models=self.cate_models,
         )
+        # EconML expects (Y, W, X)
         self._est.fit(Y, W, X=X)
         return self
     

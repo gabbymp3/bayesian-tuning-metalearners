@@ -3,7 +3,6 @@ import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 
-
 import numpy as np
 import pytest
 from sklearn.linear_model import LinearRegression
@@ -42,7 +41,6 @@ def test_xlearner_wrapper_init():
     assert wrapper.propensity_model is not None
     assert wrapper.cate_models is not None
     assert wrapper._est is None
-    #assert wrapper.true_tau is None
     assert wrapper.predict is not None
     assert wrapper.predict_outcome is not None
     assert wrapper.set_params is not None
@@ -52,9 +50,8 @@ def test_xlearner_wrapper_fit(dataset):
     wrapper = XlearnerWrapper(models=LinearRegression(),
                               propensity_model=RandomForestClassifier(),
                               cate_models=LinearRegression())
-    wrapper.fit(dataset.Y, dataset.W, X=dataset.X)
+    wrapper.fit(dataset.X, dataset.Y, W=dataset.W)
     assert wrapper._est is not None
-    #assert wrapper.true_tau is None
     assert isinstance(wrapper._est, XLearner)
     assert wrapper.predict is not None
     assert wrapper.predict_outcome is not None
@@ -71,7 +68,7 @@ def test_xlearner_wrapper_predict_naive(naive_dataset):
     )
 
     assert wrapper._est is None
-    wrapper.fit(Y, W, X=X)
+    wrapper.fit(X, Y, W=W)
     assert wrapper._est is not None
     assert isinstance(wrapper._est, XLearner)
 
@@ -92,7 +89,7 @@ def test_predict_outcome_responds_to_treatment_change(naive_dataset):
         propensity_model=RandomForestClassifier(n_estimators=50, random_state=0),
         cate_models=RandomForestRegressor(n_estimators=50, random_state=0),
     )
-    wrapper.fit(Y, W, X=X)
+    wrapper.fit(X, Y, W=W)
 
     y_hat_original = wrapper.predict_outcome(X, W)
     W_flipped = 1 - W
@@ -108,6 +105,6 @@ def test_zero_tau(zero_tau_dataset):
         propensity_model=RandomForestClassifier(n_estimators=100, random_state=0),
         cate_models=RandomForestRegressor(n_estimators=100, random_state=0),
     )
-    wrapper.fit(zero_tau_dataset.Y, zero_tau_dataset.W, X=zero_tau_dataset.X)
+    wrapper.fit(zero_tau_dataset.X, zero_tau_dataset.Y, W=zero_tau_dataset.W)
     tau_hat = wrapper.predict(zero_tau_dataset.X)
     assert np.allclose(tau_hat, np.zeros(zero_tau_dataset.N), atol=1.5)
