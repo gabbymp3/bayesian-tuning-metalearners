@@ -7,7 +7,21 @@ def outcome_mse(estimator, X, Y, W):
     Factual outcome MSE
     """
     y_hat = estimator.predict_outcome(X, W)
-    return np.mean((Y - y_hat) ** 2)
+    mask = np.zeros_like(Y, dtype=bool)
+
+    if np.any(W == 0):
+        y_hat[W == 0] = estimator._est.models[0].predict(X[W == 0])
+        mask[W == 0] = True
+
+    if np.any(W == 1):
+        y_hat[W == 1] = estimator._est.models[1].predict(X[W == 1])
+        mask[W == 1] = True
+
+    if not np.any(mask):
+        return np.nan
+
+    return np.mean((Y[mask] - y_hat[mask]) ** 2)
+    #return np.mean((Y - y_hat) ** 2)
 
 
 
