@@ -116,3 +116,13 @@ class SimulatedDataset:
 
     def generate_outcome(self):
         return np.where(self.W == 1, self.Y1, self.Y0)
+
+
+def simulate_dataset(dgp_params, seed=0):
+    dgp = SimulatedDataset(
+        N=dgp_params.get("N", 50),
+        d=dgp_params.get("d", 5),
+        alpha=dgp_params.get("alpha", 0.5),
+        seed=seed
+    )
+    return dgp.X, dgp.W, dgp.Y, dgp.mu0, dgp.mu1, dgp.Y0, dgp.Y1, dgp.tau, dgp.e

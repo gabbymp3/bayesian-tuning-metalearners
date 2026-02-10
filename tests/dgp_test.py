@@ -5,7 +5,7 @@ sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import numpy as np
 import pytest
-from src.dgp import SimulatedDataset
+from src.dgp import SimulatedDataset, simulate_dataset
 
 
 @pytest.fixture
@@ -111,3 +111,18 @@ def test_outcome_consistency(dataset):
 def test_shared_noise(dataset):
     diff = dataset.Y1 - dataset.Y0
     assert np.allclose(diff, dataset.tau)
+
+def test_simulate_dataset():
+    X, W, Y, mu0, mu1, Y0, Y1, tau, e = simulate_dataset(
+        dgp_params={"N": 100, "d": 12, "alpha": 0.5},
+        seed=0
+    )
+    assert X.shape == (100, 12)
+    assert W.shape == (100,)
+    assert Y.shape == (100,)
+    assert mu0.shape == (100,)
+    assert mu1.shape == (100,)
+    assert Y0.shape == (100,)
+    assert Y1.shape == (100,)
+    assert tau.shape == (100,)
+    assert e.shape == (100,)
