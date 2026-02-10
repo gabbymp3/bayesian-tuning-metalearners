@@ -19,7 +19,6 @@ def learners():
             "name": "x_rf",
             "models": RandomForestRegressor(n_estimators=5, random_state=0),
             "propensity_model": RandomForestClassifier(n_estimators=5, random_state=0),
-            "cate_models": RandomForestRegressor(n_estimators=5, random_state=0)
         }
     ]
 
