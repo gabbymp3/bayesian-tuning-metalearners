@@ -23,7 +23,7 @@ def test_tune_grid_search(dataset):
     wrapper = XlearnerWrapper(
         models=RandomForestRegressor(random_state=0),
         propensity_model=RandomForestClassifier(random_state=0),
-        cate_models=RandomForestRegressor(random_state=0),
+        # cate_models is optional - defaults to None (uses models)
     )
     param_grid = {
         'models__n_estimators': [50, 100, 200],
@@ -43,7 +43,7 @@ def test_tune_random_search(dataset):
     wrapper = XlearnerWrapper(
         models=RandomForestRegressor(random_state=0),
         propensity_model=RandomForestClassifier(random_state=0),
-        cate_models=RandomForestRegressor(random_state=0),
+        # cate_models is optional - defaults to None (uses models)
     )
 
     param_dist = {

@@ -59,7 +59,7 @@ def test_cross_predict_tau(dataset):
     wrapper = XlearnerWrapper(
         models=RandomForestRegressor(n_estimators=100, random_state=0),
         propensity_model=RandomForestClassifier(n_estimators=100, random_state=0),
-        cate_models=RandomForestRegressor(n_estimators=100, random_state=0),
+        # cate_models defaults to None (uses models)
     )
     est_class = type(wrapper)
     est_params = wrapper.get_params()

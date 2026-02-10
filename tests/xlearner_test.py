@@ -34,6 +34,7 @@ def zero_tau_dataset():
     return dgp
 
 def test_xlearner_wrapper_init():
+    # Test with explicit cate_models
     wrapper = XlearnerWrapper(models=LinearRegression(),
                               propensity_model=LinearRegression(),
                               cate_models=LinearRegression())
@@ -46,10 +47,18 @@ def test_xlearner_wrapper_init():
     assert wrapper.set_params is not None
     assert wrapper.get_params is not None
 
+def test_xlearner_wrapper_init_no_cate_models():
+    # Test without cate_models (should default to None)
+    wrapper = XlearnerWrapper(models=LinearRegression(),
+                              propensity_model=LinearRegression())
+    assert wrapper.models is not None
+    assert wrapper.propensity_model is not None
+    assert wrapper.cate_models is None
+    assert wrapper._est is None
+
 def test_xlearner_wrapper_fit(dataset):
     wrapper = XlearnerWrapper(models=LinearRegression(),
-                              propensity_model=RandomForestClassifier(),
-                              cate_models=LinearRegression())
+                              propensity_model=RandomForestClassifier())
     wrapper.fit(dataset.X, dataset.Y, W=dataset.W)
     assert wrapper._est is not None
     assert isinstance(wrapper._est, XLearner)
@@ -64,7 +73,7 @@ def test_xlearner_wrapper_predict_naive(naive_dataset):
     wrapper = XlearnerWrapper(
         models=RandomForestRegressor(n_estimators=10, random_state=0),
         propensity_model=RandomForestClassifier(n_estimators=10, random_state=0),
-        cate_models=RandomForestRegressor(n_estimators=10, random_state=0),
+        # cate_models defaults to None (uses models)
     )
 
     assert wrapper._est is None
@@ -87,7 +96,7 @@ def test_predict_outcome_responds_to_treatment_change(naive_dataset):
     wrapper = XlearnerWrapper(
         models=RandomForestRegressor(n_estimators=50, random_state=0),
         propensity_model=RandomForestClassifier(n_estimators=50, random_state=0),
-        cate_models=RandomForestRegressor(n_estimators=50, random_state=0),
+        # cate_models defaults to None (uses models)
     )
     wrapper.fit(X, Y, W=W)
 
@@ -103,7 +112,7 @@ def test_zero_tau(zero_tau_dataset):
     wrapper = XlearnerWrapper(
         models=RandomForestRegressor(n_estimators=100, random_state=0),
         propensity_model=RandomForestClassifier(n_estimators=100, random_state=0),
-        cate_models=RandomForestRegressor(n_estimators=100, random_state=0),
+        # cate_models defaults to None (uses models)
     )
     wrapper.fit(zero_tau_dataset.X, zero_tau_dataset.Y, W=zero_tau_dataset.W)
     tau_hat = wrapper.predict(zero_tau_dataset.X)

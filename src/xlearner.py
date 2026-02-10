@@ -8,8 +8,17 @@ import numpy as np
 class XlearnerWrapper(BaseEstimator):
     '''
     Wrapper for EconML Xlearner to make it compatible with sklearn API for HP tuning.
+
+    Parameters
+    ----------
+    models : estimator or list of estimators
+        Outcome estimators for control and treatment units.
+    propensity_model : estimator
+        Propensity score estimator.
+    cate_models : estimator or list of estimators, optional (default=None)
+        CATE estimators. If None, uses the same models as outcome estimators.
     '''
-    def __init__(self, models, propensity_model, cate_models, **kwargs):
+    def __init__(self, models, propensity_model, cate_models=None, **kwargs):
         self.models = models
         self.propensity_model = propensity_model
         self.cate_models = cate_models

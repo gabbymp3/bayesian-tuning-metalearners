@@ -50,7 +50,7 @@ def run_experiment(
             base_estimator = XlearnerWrapper(
                 models=L["models"],
                 propensity_model=L["propensity_model"],
-                cate_models=L["cate_models"],
+                cate_models=L.get("cate_models", None),  # Optional, defaults to None (uses models)
             )
 
             for Tu in tuners:
