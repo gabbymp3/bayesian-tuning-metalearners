@@ -242,7 +242,7 @@ def random_search(
 
 def bayesian_search(
     estimator,
-    search_space,
+    param_dist,
     X,
     Y,
     W,
@@ -263,7 +263,7 @@ def bayesian_search(
     ----------
     estimator : sklearn-compatible estimator
         Base estimator (e.g., XlearnerWrapper) to be tuned.
-    search_space : dict
+    param_dist : dict
         Dictionary mapping parameter names to skopt.space objects
         (e.g., Real, Integer, Categorical).
     X : array-like of shape (n_samples, n_features)
@@ -297,8 +297,8 @@ def bayesian_search(
     to maintain valid causal estimation.
     """
 
-    param_names = list(search_space.keys())
-    dimensions = list(search_space.values())
+    param_names = list(param_dist.keys())
+    dimensions = list(param_dist.values())
 
     optimizer = Optimizer(
         dimensions=dimensions,

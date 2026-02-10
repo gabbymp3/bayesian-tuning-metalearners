@@ -13,9 +13,11 @@ from src.dgp import SimulatedDataset
 from src.xlearner import XlearnerWrapper
 from src.tuning import grid_search, random_search, bayesian_search
 
+
 @pytest.fixture
 def dataset():
     return SimulatedDataset(N=2000, d=10, alpha=0.5, seed=42)
+
 
 def test_tune_grid_search(dataset):
     wrapper = XlearnerWrapper(
@@ -66,7 +68,7 @@ def test_tune_bayesian_search(dataset):
         cate_models=RandomForestRegressor(random_state=0),
     )
 
-    search_space = {
+    param_dist = {
         'models__n_estimators': Integer(50, 200),
         'models__max_depth': Integer(3, 8),
         'models__min_samples_leaf': Integer(1, 10),
@@ -74,7 +76,7 @@ def test_tune_bayesian_search(dataset):
 
     best_wrapper, best_params, best_score = bayesian_search(
         estimator=wrapper,
-        search_space=search_space,
+        param_dist=param_dist,
         X=dataset.X,
         Y=dataset.Y,
         W=dataset.W,
@@ -86,13 +88,8 @@ def test_tune_bayesian_search(dataset):
     assert isinstance(best_wrapper, XlearnerWrapper)
     assert isinstance(best_params, dict)
     assert isinstance(best_score, float)
-    assert set(best_params.keys()) == set(search_space.keys())
+    assert set(best_params.keys()) == set(param_dist.keys())
     assert best_score > 0
-
-import pytest
-from scipy.stats import randint
-from skopt.space import Integer
-from src.tuning import grid_search, random_search, bayesian_search
 
 
 @pytest.mark.parametrize(
@@ -163,7 +160,7 @@ def test_tuning_methods(search_fn, search_space, dataset):
     else:  # bayesian_search
         best_wrapper, best_params, best_score = search_fn(
             **common_kwargs,
-            search_space=search_space,
+            param_dist=search_space,
             n_iter=5,
         )
 
