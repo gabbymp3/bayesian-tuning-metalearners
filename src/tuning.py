@@ -2,7 +2,7 @@ from itertools import product
 import numpy as np
 from sklearn.model_selection import KFold, ParameterSampler
 from sklearn.base import clone
-from skopt import BayesSearchCV
+from skopt import Optimizer
 from skopt.space import Real, Categorical, Integer
 from src.metrics_helpers import outcome_mse
 from src.xlearner import XlearnerWrapper
@@ -10,47 +10,149 @@ from src.xlearner import XlearnerWrapper
 
 
 def expand_param_grid(param_grid):
+    """
+    Generator that expands a parameter grid into individual parameter dictionaries.
+
+    Parameters
+    ----------
+    param_grid : dict
+        Dictionary mapping parameter names to lists of candidate values.
+
+    Yields
+    ------
+    params : dict
+        A dictionary representing one combination of parameters from the grid.
+
+    Notes
+    -----
+    This function mirrors the behavior of sklearn's grid expansion but is implemented
+    explicitly to allow full control over the tuning loop for meta-learners.
+    """
     keys = list(param_grid.keys())
     values = list(param_grid.values())
     for combo in product(*values):
         yield dict(zip(keys, combo))
 
 
-def grid_search(estimator, param_grid, X, Y, W, cv=5, random_state=123, verbose=False, n_jobs=-1):
+def evaluate_params_cv(
+    estimator,
+    params,
+    X,
+    Y,
+    W,
+    cv=5,
+    random_state=123
+):
     """
-    Manual GridSearchCV for XlearnerWrapper
+    Evaluate a parameter configuration using K-fold CV and factual outcome MSE.
+
+    Returns
+    -------
+    float
+        Mean cross-validated MSE. Returns np.inf if no valid folds exist.
     """
 
     kf = KFold(n_splits=cv, shuffle=True, random_state=random_state)
+    fold_scores = []
+
+    for train_idx, test_idx in kf.split(X):
+        X_tr, X_te = X[train_idx], X[test_idx]
+        Y_tr, Y_te = Y[train_idx], Y[test_idx]
+        W_tr, W_te = W[train_idx], W[test_idx]
+
+        # Ensure both treatment arms are present
+        if (
+            np.sum(W_tr == 0) == 0 or np.sum(W_tr == 1) == 0 or
+            np.sum(W_te == 0) == 0 or np.sum(W_te == 1) == 0
+        ):
+            continue
+
+        est = clone(estimator)
+        est.set_params(**params)
+        est.fit(X_tr, Y_tr, W=W_tr)
+
+        mse = outcome_mse(est, X_te, Y_te, W_te)
+        if not np.isnan(mse):
+            fold_scores.append(mse)
+
+    if len(fold_scores) == 0:
+        return np.inf
+
+    return np.mean(fold_scores)
+
+
+"""
+-------------------TUNING FUNCTIONS -------------------
+"""
+
+
+def grid_search(
+        estimator, 
+        param_grid, 
+        X, 
+        Y, 
+        W, 
+        cv=5, 
+        random_state=123, 
+        verbose=False, 
+        n_jobs=-1):
+    """
+    Manual grid search cross-validation for XlearnerWrapper.
+
+    Performs an exhaustive search over all parameter combinations specified in
+    `param_grid`, evaluating each configuration using K-fold cross-validation
+    and factual outcome mean squared error (MSE).
+
+    Parameters
+    ----------
+    estimator : sklearn-compatible estimator
+        Base estimator (e.g., XlearnerWrapper) to be tuned.
+    param_grid : dict
+        Dictionary mapping parameter names to lists of values to be exhaustively searched.
+    X : array-like of shape (n_samples, n_features)
+        Covariate matrix.
+    Y : array-like of shape (n_samples,)
+        Observed outcomes.
+    W : array-like of shape (n_samples,)
+        Binary treatment indicator.
+    cv : int, default=5
+        Number of cross-validation folds.
+    random_state : int, default=123
+        Random seed used for shuffling cross-validation splits.
+    verbose : bool, default=False
+        If True, prints parameter configurations and corresponding scores.
+    n_jobs : int, default=-1
+        Included for API consistency; not used in this manual implementation.
+
+    Returns
+    -------
+    best_estimator : estimator
+        Fitted estimator with the best-performing hyperparameters.
+    best_params : dict
+        Dictionary of hyperparameters that achieved the lowest average MSE.
+    best_score : float
+        Best (lowest) cross-validated outcome MSE.
+
+    Notes
+    -----
+    Folds that lack both treatment groups are skipped to ensure valid
+    causal estimation.
+    """
+
     best_score = np.inf
     best_params = None
     best_estimator = None
 
     for params in expand_param_grid(param_grid):
-        fold_scores = []
-
-        for train_idx, test_idx in kf.split(X):
-            X_tr, X_te = X[train_idx], X[test_idx]
-            Y_tr, Y_te = Y[train_idx], Y[test_idx]
-            W_tr, W_te = W[train_idx], W[test_idx]
-
-            if len(np.unique(W_te)) < 2:
-                continue
-
-            est = clone(estimator)
-            est.set_params(**params)
-            est.fit(X_tr, Y_tr, W=W_tr)
-
-            mse = outcome_mse(est, X_te, Y_te, W_te)
-            fold_scores.append(mse)
-
-        avg_score = np.mean(fold_scores)
+        score = evaluate_params_cv(
+            estimator, params, X, Y, W, cv=cv, random_state=random_state
+        )
 
         if verbose:
-            print(f"Params {params} | MSE = {avg_score:.4f}")
+            print(f"Params {params} | MSE = {score:.4f}")
 
-        if avg_score < best_score:
-            best_score = avg_score
+        if score < best_score:
+            best_score = score
             best_params = params
             best_estimator = clone(estimator).set_params(**params)
             best_estimator.fit(X, Y, W=W)
@@ -58,46 +160,172 @@ def grid_search(estimator, param_grid, X, Y, W, cv=5, random_state=123, verbose=
     return best_estimator, best_params, best_score
 
 
-def random_search(estimator, param_dist, X, Y, W, cv=5, n_iter=20, random_state=123, verbose=False, n_jobs=-1):
+def random_search(
+        estimator,
+        param_dist, 
+        X, 
+        Y, 
+        W, 
+        cv=5, 
+        n_iter=20, 
+        random_state=123, 
+        verbose=False, 
+        n_jobs=-1):
     """
-    Manual RandomSearchCV for XlearnerWrapper
+    Manual random search cross-validation for XlearnerWrapper.
+
+    Samples hyperparameter configurations at random from specified distributions
+    and evaluates each configuration using K-fold cross-validation and factual
+    outcome mean squared error (MSE).
+
+    Parameters
+    ----------
+    estimator : sklearn-compatible estimator
+        Base estimator (e.g., XlearnerWrapper) to be tuned.
+    param_dist : dict
+        Dictionary mapping parameter names to distributions or lists from which
+        values are randomly sampled.
+    X : array-like of shape (n_samples, n_features)
+        Covariate matrix.
+    Y : array-like of shape (n_samples,)
+        Observed outcomes.
+    W : array-like of shape (n_samples,)
+        Binary treatment indicator.
+    cv : int, default=5
+        Number of cross-validation folds.
+    n_iter : int, default=20
+        Number of random parameter configurations to evaluate.
+    random_state : int, default=123
+        Random seed for parameter sampling and cross-validation splits.
+    verbose : bool, default=False
+        If True, prints parameter configurations and corresponding scores.
+    n_jobs : int, default=-1
+        Included for API consistency; not used in this manual implementation.
+
+    Returns
+    -------
+    best_estimator : estimator
+        Fitted estimator with the best-performing hyperparameters.
+    best_params : dict
+        Dictionary of hyperparameters that achieved the lowest average MSE.
+    best_score : float
+        Best (lowest) cross-validated outcome MSE.
+
+    Notes
+    -----
+    Folds without representation from both treatment groups are skipped,
+    mirroring sklearn's RandomizedSearchCV while allowing
+    explicit handling of treatment indicators.
     """
 
-    kf = KFold(n_splits=cv, shuffle=True, random_state=random_state)
     best_score = np.inf
     best_params = None
     best_estimator = None
 
     for params in ParameterSampler(param_dist, n_iter=n_iter, random_state=random_state):
-        fold_scores = []
-
-        for train_idx, test_idx in kf.split(X):
-            X_tr, X_te = X[train_idx], X[test_idx]
-            Y_tr, Y_te = Y[train_idx], Y[test_idx]
-            W_tr, W_te = W[train_idx], W[test_idx]
-
-            if (np.sum(W_tr == 0) == 0 or np.sum(W_tr == 1) == 0 or
-                np.sum(W_te == 0) == 0 or np.sum(W_te == 1) == 0):
-                continue
-
-            est = clone(estimator)
-            est.set_params(**params)
-            est.fit(X_tr, Y_tr, W=W_tr)
-
-            mse = outcome_mse(est, X_te, Y_te, W_te)
-            if not np.isnan(mse):
-                fold_scores.append(mse)
-                
-        if len(fold_scores) == 0:
-            continue
-
-        avg_score = np.mean(fold_scores)
+        score = evaluate_params_cv(
+            estimator, params, X, Y, W, cv=cv, random_state=random_state
+        )
 
         if verbose:
-            print(f"Params {params} | MSE = {avg_score:.4f}")
+            print(f"Params {params} | MSE = {score:.4f}")
 
-        if avg_score < best_score:
-            best_score = avg_score
+        if score < best_score:
+            best_score = score
+            best_params = params
+            best_estimator = clone(estimator).set_params(**params)
+            best_estimator.fit(X, Y, W=W)
+
+    return best_estimator, best_params, best_score
+
+
+
+def bayesian_search(
+    estimator,
+    search_space,
+    X,
+    Y,
+    W,
+    cv=5,
+    n_iter=25,
+    random_state=123,
+    verbose=False
+):
+    """
+    Manual Bayesian optimization for XlearnerWrapper using Gaussian processes.
+
+    Sequentially proposes hyperparameter configurations using a Gaussian process
+    surrogate model and an expected improvement acquisition function. Each
+    configuration is evaluated using K-fold cross-validation and factual outcome
+    mean squared error (MSE).
+
+    Parameters
+    ----------
+    estimator : sklearn-compatible estimator
+        Base estimator (e.g., XlearnerWrapper) to be tuned.
+    search_space : dict
+        Dictionary mapping parameter names to skopt.space objects
+        (e.g., Real, Integer, Categorical).
+    X : array-like of shape (n_samples, n_features)
+        Covariate matrix.
+    Y : array-like of shape (n_samples,)
+        Observed outcomes.
+    W : array-like of shape (n_samples,)
+        Binary treatment indicator.
+    cv : int, default=5
+        Number of cross-validation folds.
+    n_iter : int, default=25
+        Number of Bayesian optimization iterations.
+    random_state : int, default=123
+        Random seed for reproducibility.
+    verbose : bool, default=False
+        If True, prints parameter configurations and corresponding scores.
+
+    Returns
+    -------
+    best_estimator : estimator
+        Fitted estimator with the best-performing hyperparameters.
+    best_params : dict
+        Dictionary of hyperparameters that achieved the lowest average MSE.
+    best_score : float
+        Best (lowest) cross-validated outcome MSE.
+
+    Notes
+    -----
+    This implementation avoids sklearn's BayesSearchCV to allow explicit passing
+    of treatment indicators. Folds without both treatment groups are skipped 
+    to maintain valid causal estimation.
+    """
+
+    param_names = list(search_space.keys())
+    dimensions = list(search_space.values())
+
+    optimizer = Optimizer(
+        dimensions=dimensions,
+        base_estimator="GP",
+        acq_func="EI",
+        random_state=random_state
+    )
+
+    best_score = np.inf
+    best_params = None
+    best_estimator = None
+
+    for it in range(n_iter):
+        x = optimizer.ask()
+        params = dict(zip(param_names, x))
+
+        score = evaluate_params_cv(
+            estimator, params, X, Y, W, cv=cv, random_state=random_state
+        )
+
+        optimizer.tell(x, score)
+
+        if verbose:
+            print(f"[Iter {it+1}/{n_iter}] Params {params} | MSE = {score:.4f}")
+
+        if score < best_score:
+            best_score = score
             best_params = params
             best_estimator = clone(estimator).set_params(**params)
             best_estimator.fit(X, Y, W=W)
