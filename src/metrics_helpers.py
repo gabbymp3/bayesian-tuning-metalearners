@@ -21,7 +21,6 @@ def outcome_mse(estimator, X, Y, W):
         return np.nan
 
     return np.mean((Y[mask] - y_hat[mask]) ** 2)
-    #return np.mean((Y - y_hat) ** 2)
 
 
 
@@ -52,33 +51,3 @@ def cross_predict_tau(estimator_type, estimator_params, X, Y, W=None, cv=5):
         tau_oof += tau_fold / cv
     
     return tau_oof
-    
-
-
-'''
-def make_outcome_mse_scorer(W):
-    def scorer(estimator, X, y_true):
-        y_pred = estimator.predict_outcome(X, W)
-        return -np.mean((y_true - y_pred) ** 2)
-    return scorer
-
-def outcome_mse_scorer(estimator, X, y_true, *, W):
-    assert hasattr(estimator, "predict_outcome")
-    y_pred = estimator.predict_outcome(X, W)
-    return -np.mean((y_true - y_pred) ** 2)
-
-
-mse_scorer = make_scorer(
-    outcome_mse_scorer,
-    greater_is_better=False,
-    needs_estimator=True
-)
-
-# custom MSE function to be used during tuning
-def outcome_mse_scorer(estimator, X, Y, W=None):
-    assert hasattr(estimator, "predict_outcome")
-    y_pred = estimator.predict_outcome(X, W)
-    return np.mean((Y - y_pred) ** 2)
-
-mse_scorer = make_scorer(outcome_mse_scorer, greater_is_better=False)
-'''
