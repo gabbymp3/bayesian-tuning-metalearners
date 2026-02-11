@@ -1,19 +1,20 @@
 import numpy as np
-from sklearn.model_selection import KFold
 from metrics_helpers import pehe, cross_predict_tau
 from xlearner import XlearnerWrapper
 
+
 def run_experiment(
-    learners,
+    learner_config,
     tuners,
     R,
     simulate_dataset_fn,
     dgp_params,
     base_seed=0,
-    cv_plug=5  # folds for cross-predict
+    cv_plug=5
 ):
+
     """
-    Run repeated experiments for tuned X-learners and evaluate PEHE metrics.
+    Run repeated experiments for an X-learner across multiple tuners and evaluate PEHE metrics.
 
     Returns
     -------
@@ -23,98 +24,72 @@ def run_experiment(
         Per-repetition PEHE values.
     """
 
-    # ---------------------------
-    # Storage
-    # ---------------------------
+    learner_name = learner_config["name"]
+
     raw_results = {
-        (L["name"], T["name"]): {
+        tuner["name"]: {
             "pehe": np.zeros(R),
             "pehe_plug": np.zeros(R),
         }
-        for L in learners
-        for T in tuners
+        for tuner in tuners
     }
 
-    # ---------------------------
-    # Monte Carlo loop
-    # ---------------------------
     for r in range(R):
-        # Unpack everything from new simulate_dataset
+
         X, W, Y, mu0, mu1, Y0, Y1, tau, e = simulate_dataset_fn(
             dgp_params, seed=base_seed + r
         )
 
         tau_true = tau
 
-        for L in learners:
-            base_estimator = XlearnerWrapper(
-                models=L["models"],
-                propensity_model=L["propensity_model"],
-                cate_models=L.get("cate_models", None),  # Optional, defaults to None (uses models)
-            )
+        base_estimator = XlearnerWrapper(
+            models=learner_config["models"],
+            propensity_model=learner_config["propensity_model"],
+        )
 
-            for Tu in tuners:
-                # -------------------------------
-                # Tune using correct argument
-                # -------------------------------
-                if Tu["fn"].__name__ == "grid_search":
-                    best_estimator, best_params, best_score = Tu["fn"](
-                        estimator=base_estimator,
-                        param_grid=Tu["param_grid"],
-                        X=X,
-                        Y=Y,
-                        W=W,
-                        **Tu.get("kwargs", {})
-                    )
-                elif Tu["fn"].__name__ in ["random_search", "bayesian_search"]:
-                    best_estimator, best_params, best_score = Tu["fn"](
-                        estimator=base_estimator,
-                        param_dist=Tu["param_dist"],
-                        X=X,
-                        Y=Y,
-                        W=W,
-                        **Tu.get("kwargs", {})
-                    )
-                
-                else:
-                    raise ValueError(f"Unknown tuning function {Tu['fn']}")
+        for tuner in tuners:
 
-                # -------------------------------
-                # Estimate CATE
-                # -------------------------------
-                tau_hat = best_estimator.predict(X)
-
-                # -------------------------------
-                # Compute plug-in tau using cross-prediction
-                # -------------------------------
-                estimator_type = type(best_estimator)
-                estimator_params = best_estimator.get_params()
-                tau_plug = cross_predict_tau(
-                    estimator_type,
-                    estimator_params,
-                    X, Y, W=W,
-                    cv=cv_plug
+            # Select correct argument name
+            if tuner["fn"].__name__ == "grid_search":
+                best_estimator, best_params, best_score = tuner["fn"](
+                    estimator=base_estimator,
+                    param_grid=tuner["param_grid"],
+                    X=X, Y=Y, W=W,
+                    **tuner.get("kwargs", {})
+                )
+            else:
+                best_estimator, best_params, best_score = tuner["fn"](
+                    estimator=base_estimator,
+                    param_dist=tuner["param_dist"],
+                    X=X, Y=Y, W=W,
+                    **tuner.get("kwargs", {})
                 )
 
-                key = (L["name"], Tu["name"])
-                raw_results[key]["pehe"][r] = pehe(tau_true, tau_hat)
-                raw_results[key]["pehe_plug"][r] = pehe(tau_plug, tau_hat)
+            tau_hat = best_estimator.predict(X)
 
-    # ---------------------------
-    # Aggregate results
-    # ---------------------------
+            estimator_type = type(best_estimator)
+            estimator_params = best_estimator.get_params()
+
+            tau_plug = cross_predict_tau(
+                estimator_type,
+                estimator_params,
+                X, Y, W=W,
+                cv=cv_plug
+            )
+
+            raw_results[tuner["name"]]["pehe"][r] = pehe(tau_true, tau_hat)
+            raw_results[tuner["name"]]["pehe_plug"][r] = pehe(tau_plug, tau_hat)
+
+    # Aggregate
     summary = []
-    for (learner_name, tuner_name), d in raw_results.items():
-        pe = d["pehe"]
-        pp = d["pehe_plug"]
-
+    for tuner_name, metrics in raw_results.items():
         summary.append({
             "learner": learner_name,
             "tuner": tuner_name,
-            "pehe_mean": float(pe.mean()),
-            "pehe_var": float(pe.var(ddof=1)) if len(pe) > 1 else 0.0,
-            "pehe_plug_mean": float(pp.mean()),
-            "pehe_plug_var": float(pp.var(ddof=1)) if len(pp) > 1 else 0.0,
+            "pehe_mean": float(metrics["pehe"].mean()),
+            "pehe_var": float(metrics["pehe"].var(ddof=1)),
+            "pehe_plug_mean": float(metrics["pehe_plug"].mean()),
+            "pehe_plug_var": float(metrics["pehe_plug"].var(ddof=1)),
         })
 
     return summary, raw_results
