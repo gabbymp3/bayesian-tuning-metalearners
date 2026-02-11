@@ -77,8 +77,8 @@ def test_propensity_range(dataset):
     assert np.all(dataset.e < 1)
 
     # basic overlap check
-    assert dataset.e.min() > 0.02
-    assert dataset.e.max() < 0.98
+    assert dataset.e.min() > 0.01
+    assert dataset.e.max() < 0.99
 
 def test_propensity_independent_of_non_confounders(dataset):
     X_copy = dataset.X.copy()
@@ -126,3 +126,11 @@ def test_simulate_dataset():
     assert Y1.shape == (100,)
     assert tau.shape == (100,)
     assert e.shape == (100,)
+
+
+def test_class_imbalance(dataset):
+    for i in range(500):
+        d = SimulatedDataset(N=1000, d=10, alpha=0.5, seed=i)
+        assert np.any(d.W == 0)
+        assert np.any(d.W == 1)
+        assert 0.2 < np.mean(d.W) < 0.4

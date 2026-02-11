@@ -4,9 +4,57 @@ from numpy.random import default_rng
 
 class SimulatedDataset:
 
-    '''
-    description
-    '''
+    """
+    Simulated dataset generated using a similar procedure as in Künzel et al. (2019)
+    with correlated covariates and treatment effect heterogeneity; with the addition
+    of specified confounding, prognostic, and effect modifier covariates.
+
+    Parameters
+    ----------
+    N : int
+        Number of observations to simulate.
+    d : int
+        Number of covariates (features). Must be at least 10 to respect the
+        fixed index sets for confounders, prognostic variables, and effect
+        modifiers.
+    alpha : float
+        Confounding strength parameter entering the propensity score logits.
+        alpha = 0 corresponds to completely randomized treatment; increasing
+        |alpha| increases confounding.
+    seed : int, optional
+        Random seed used to initialize the internal random number generator
+        for reproducible simulation.
+
+    This class generates:
+        - X  : (N, d) feature matrix with a random correlation structure,
+        - W  : (N,) binary treatment assignments,
+        - Y  : (N,) observed outcomes,
+        - Y0 : (N,) potential outcomes under control,
+        - Y1 : (N,) potential outcomes under treatment,
+        - mu0: (N,) conditional mean outcome under control E[Y | W=0, X],
+        - mu1: (N,) conditional mean outcome under treatment E[Y | W=1, X],
+        - tau: (N,) individual treatment effects (CATE) tau(X),
+        - e  : (N,) propensity scores P(W=1 | X).
+
+    Covariates are partitioned into:
+        - Confounders      (indices [0, 1, 2, 3]): affect both treatment and outcome,
+        - Prognostic vars  (indices [4, 5, 6]): affect outcome only,
+        - Effect modifiers (indices [7, 8, 9]): drive treatment effect heterogeneity.
+
+    Outcome model:
+        - mu0(X) is a nonlinear function of confounders and prognostic covariates.
+        - tau(X) is a nonlinear function of effect modifiers via rho(·).
+        - mu1(X) = mu0(X) + tau(X).
+        - Potential outcomes are Y0 = mu0 + ε, Y1 = mu1 + ε with ε ~ N(0, 1).
+
+    Treatment assignment:
+        - Propensity scores e(X) = P(W=1 | X) are a logistic function of confounders.
+        - The parameter `alpha` scales the logits and controls the strength of confounding:
+            * alpha = 0  → random treatment assignment (no confounding),
+            * larger |alpha| → stronger dependence of W on X (stronger confounding).
+
+    """
+
     def __init__(self, N,  d, alpha, seed=123):
         self.rng = default_rng(seed)
         self.N = N
@@ -106,7 +154,7 @@ class SimulatedDataset:
             + 0.2 * Xc[:, 2]
             - 0.1 * Xc[:, 3]**2
         )
-        return 1 / (1 + np.exp(-logits*self.alpha + 0.3))
+        return 1 / (1 + np.exp(-logits*self.alpha + 0.8))
 
     # -------------------------
     # OUTCOME AND TREATMENT
