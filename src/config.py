@@ -15,7 +15,7 @@ dgp_params = {"N": 1000, "d": 15, "alpha": 0.5}
 rf_config = {
     "name": "x_rf",
     "models": RandomForestRegressor(random_state=0),
-    "propensity_model": LogisticRegression(random_state=0),
+    "propensity_model": LogisticRegression(),
 }
 
 rf_tuners = [
@@ -55,7 +55,7 @@ rf_tuners = [
 cb_config = {
     "name": "x_cb",
     "models": CatBoostRegressor(verbose=0, random_state=0),
-    "propensity_model": LogisticRegression(random_state=0),
+    "propensity_model": LogisticRegression(),
 }
 
 cb_tuners = [
