@@ -1,7 +1,7 @@
 import numpy as np
 from sklearn.model_selection import KFold
-from src.metrics_helpers import pehe, cross_predict_tau
-from src.xlearner import XlearnerWrapper
+from metrics_helpers import pehe, cross_predict_tau
+from xlearner import XlearnerWrapper
 
 def run_experiment(
     learners,

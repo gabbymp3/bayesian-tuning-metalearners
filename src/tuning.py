@@ -4,8 +4,8 @@ from sklearn.model_selection import KFold, ParameterSampler
 from sklearn.base import clone
 from skopt import Optimizer
 from skopt.space import Real, Categorical, Integer
-from src.metrics_helpers import outcome_mse
-from src.xlearner import XlearnerWrapper
+from metrics_helpers import outcome_mse
+from xlearner import XlearnerWrapper
 
 
 
@@ -58,7 +58,6 @@ def sample_from_distribution(dist, rng):
     # skopt Integer / Real fallback
     if hasattr(dist, "low") and hasattr(dist, "high"):
         return rng.integers(dist.low, dist.high + 1)
-    
     
     if isinstance(dist, Categorical):
         return rng.choice(dist.categories)
