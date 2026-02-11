@@ -1,5 +1,6 @@
-from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
-from catboost import CatBoostRegressor, CatBoostClassifier
+from sklearn.ensemble import RandomForestRegressor
+from catboost import CatBoostRegressor
+from sklearn.linear_model import LogisticRegression
 from skopt.space import Integer
 from src.tuning import grid_search, random_search, bayesian_search
 
@@ -14,7 +15,7 @@ dgp_params = {"N": 1000, "d": 15, "alpha": 0.5}
 rf_config = {
     "name": "x_rf",
     "models": RandomForestRegressor(random_state=0),
-    "propensity_model": RandomForestClassifier(random_state=0),
+    "propensity_model": LogisticRegression(random_state=0),
 }
 
 rf_tuners = [
@@ -54,7 +55,7 @@ rf_tuners = [
 cb_config = {
     "name": "x_cb",
     "models": CatBoostRegressor(verbose=0, random_state=0),
-    "propensity_model": CatBoostClassifier(verbose=0, random_state=0),
+    "propensity_model": LogisticRegression(random_state=0),
 }
 
 cb_tuners = [
