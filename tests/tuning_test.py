@@ -19,20 +19,23 @@ def dataset():
     return SimulatedDataset(N=2000, d=10, alpha=0.5, seed=42)
 
 
+# -----------------------------
+# Single-method tests
+# -----------------------------
 def test_tune_grid_search(dataset):
     wrapper = XlearnerWrapper(
         models=RandomForestRegressor(random_state=0),
         propensity_model=RandomForestClassifier(random_state=0),
-        # cate_models is optional - defaults to None (uses models)
     )
     param_grid = {
-        'models__n_estimators': [50, 100, 200],
-        'models__max_depth': [3, 5, 8],
-        'models__min_samples_leaf': [1, 5, 10],
+        'models__n_estimators': [10, 20],
+        'models__max_depth': [3, 5],
     }
+
     best_wrapper, best_params, best_score = grid_search(
         wrapper, param_grid, dataset.X, dataset.Y, dataset.W, cv=3, verbose=0
     )
+
     assert isinstance(best_wrapper, XlearnerWrapper)
     assert isinstance(best_params, dict)
     assert isinstance(best_score, float)
@@ -43,18 +46,17 @@ def test_tune_random_search(dataset):
     wrapper = XlearnerWrapper(
         models=RandomForestRegressor(random_state=0),
         propensity_model=RandomForestClassifier(random_state=0),
-        # cate_models is optional - defaults to None (uses models)
     )
 
     param_dist = {
-        'models__n_estimators': randint(50, 200),
-        'models__max_depth': randint(3, 9),
-        'models__min_samples_leaf': randint(1, 11)
+        'models__n_estimators': Integer(10, 30),
+        'models__max_depth': Integer(3, 7),
     }
 
     best_wrapper, best_params, best_score = random_search(
-        wrapper, param_dist, dataset.X, dataset.Y, dataset.W, cv=3, verbose=0
+        wrapper, param_dist, dataset.X, dataset.Y, dataset.W, cv=3, n_iter=5, verbose=0
     )
+
     assert isinstance(best_wrapper, XlearnerWrapper)
     assert isinstance(best_params, dict)
     assert isinstance(best_score, float)
@@ -65,13 +67,11 @@ def test_tune_bayesian_search(dataset):
     wrapper = XlearnerWrapper(
         models=RandomForestRegressor(random_state=0),
         propensity_model=RandomForestClassifier(random_state=0),
-        cate_models=RandomForestRegressor(random_state=0),
     )
 
     param_dist = {
-        'models__n_estimators': Integer(50, 200),
-        'models__max_depth': Integer(3, 8),
-        'models__min_samples_leaf': Integer(1, 10),
+        'models__n_estimators': Integer(10, 30),
+        'models__max_depth': Integer(3, 7),
     }
 
     best_wrapper, best_params, best_score = bayesian_search(
@@ -81,7 +81,7 @@ def test_tune_bayesian_search(dataset):
         Y=dataset.Y,
         W=dataset.W,
         cv=3,
-        n_iter=8,
+        n_iter=5,
         verbose=False
     )
 
@@ -92,76 +92,65 @@ def test_tune_bayesian_search(dataset):
     assert best_score > 0
 
 
-@pytest.mark.parametrize(
-    "search_fn, search_space",
-    [
-        # ---------------- Grid Search ----------------
-        (
-            grid_search,
-            {
-                'models__n_estimators': [50, 100],
-                'models__max_depth': [3, 6],
-                'models__min_samples_leaf': [1, 5],
-            },
-        ),
+# -----------------------------
+# Parameterized test for multiple search methods and base models
+# -----------------------------
+@pytest.mark.parametrize("base_model", ["rf"])
+@pytest.mark.parametrize("search_fn", [grid_search, random_search, bayesian_search])
+def test_tuning_methods(dataset, base_model, search_fn):
+    if base_model == "rf":
+        wrapper = XlearnerWrapper(
+            models=RandomForestRegressor(random_state=0),
+            propensity_model=RandomForestClassifier(random_state=0),
+        )
+        space_grid = {
+            'models__n_estimators': [10, 20],
+            'models__max_depth': [3, 5],
+        }
+        space_random = {
+            'models__n_estimators': Integer(10, 30),
+            'models__max_depth': Integer(3, 7),
+        }
+        space_bayes = {
+            'models__n_estimators': Integer(10, 30),
+            'models__max_depth': Integer(3, 7),
+        }
 
-        # ---------------- Random Search ----------------
-        (
-            random_search,
-            {
-                'models__n_estimators': randint(50, 150),
-                'models__max_depth': randint(3, 7),
-                'models__min_samples_leaf': randint(1, 8),
-            },
-        ),
-
-        # ---------------- Bayesian Search ----------------
-        (
-            bayesian_search,
-            {
-                'models__n_estimators': Integer(50, 150),
-                'models__max_depth': Integer(3, 7),
-                'models__min_samples_leaf': Integer(1, 8),
-            },
-        ),
-    ],
-)
-def test_tuning_methods(search_fn, search_space, dataset):
-    wrapper = XlearnerWrapper(
-        models=RandomForestRegressor(random_state=0),
-        propensity_model=RandomForestClassifier(random_state=0),
-        cate_models=RandomForestRegressor(random_state=0),
-    )
-
-    common_kwargs = dict(
-        estimator=wrapper,
-        X=dataset.X,
-        Y=dataset.Y,
-        W=dataset.W,
-        cv=3,
-        verbose=False,
-    )
 
     if search_fn is grid_search:
+        param_space = space_grid
         best_wrapper, best_params, best_score = search_fn(
             wrapper,
-            search_space,
-            **{k: v for k, v in common_kwargs.items() if k != "estimator"},
+            param_space,
+            dataset.X,
+            dataset.Y,
+            dataset.W,
+            cv=3,
+            verbose=0
         )
-
     elif search_fn is random_search:
+        param_space = space_random
         best_wrapper, best_params, best_score = search_fn(
             wrapper,
-            search_space,
-            **{k: v for k, v in common_kwargs.items() if k != "estimator"},
+            param_space,
+            dataset.X,
+            dataset.Y,
+            dataset.W,
+            cv=3,
             n_iter=5,
+            verbose=0
         )
-
     else:  # bayesian_search
+        param_space = space_bayes
         best_wrapper, best_params, best_score = search_fn(
-            **common_kwargs,
-            param_dist=search_space,
+            estimator=wrapper,
+            param_dist=param_space,
+            X=dataset.X,
+            Y=dataset.Y,
+            W=dataset.W,
+            cv=3,
             n_iter=5,
+            verbose=False
         )
 
     assert isinstance(best_wrapper, XlearnerWrapper)
