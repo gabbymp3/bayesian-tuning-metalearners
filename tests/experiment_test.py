@@ -13,14 +13,12 @@ from src.tuning import grid_search
 # Fixtures
 # -----------------------------
 @pytest.fixture
-def learners():
-    return [
-        {
-            "name": "x_rf",
-            "models": RandomForestRegressor(n_estimators=5, random_state=0),
-            "propensity_model": RandomForestClassifier(n_estimators=5, random_state=0),
-        }
-    ]
+def learner_config():
+    return {
+        "name": "x_rf",
+        "models": RandomForestRegressor(n_estimators=5, random_state=0),
+        "propensity_model": RandomForestClassifier(n_estimators=5, random_state=0),
+    }
 
 @pytest.fixture
 def tuners():
@@ -36,14 +34,14 @@ def tuners():
 @pytest.fixture
 def dgp_params():
     # Set d >= 10 to match covariate indexing in SimulatedDataset
-    return {"N": 50, "d": 10, "alpha": 0.5}
+    return {"N": 100, "d": 10, "alpha": 0.5}
 
 @pytest.fixture
 def dataset_fn():
     # Wrapper to match new simulate_dataset signature
     def wrapper(dgp_params, seed=0):
         dgp = SimulatedDataset(
-            N=dgp_params.get("N", 50),
+            N=dgp_params.get("N", 100),
             d=dgp_params.get("d", 10),
             alpha=dgp_params.get("alpha", 0.5),
             seed=seed
@@ -55,13 +53,13 @@ def dataset_fn():
 # Tests
 # -----------------------------
 @pytest.mark.parametrize("R", [1, 2])
-def test_run_experiment_basic(learners, tuners, dgp_params, dataset_fn, R):
+def test_run_experiment_basic(learner_config, tuners, dgp_params, dataset_fn, R):
     """
-    Run a small experiment and check output shapes and keys.
+    Run a small experiment for a single learner and check output shapes and keys.
     """
 
     summary, raw = run_experiment(
-        learners=learners,
+        learner_config=learner_config,
         tuners=tuners,
         R=R,
         simulate_dataset_fn=dataset_fn,
@@ -72,10 +70,10 @@ def test_run_experiment_basic(learners, tuners, dgp_params, dataset_fn, R):
 
     # Basic checks
     assert isinstance(summary, list)
-    assert len(summary) == len(learners) * len(tuners)
+    assert len(summary) == len(tuners)  # Only one learner
 
     assert isinstance(raw, dict)
-    for key, val in raw.items():
+    for tuner_name, val in raw.items():
         assert "pehe" in val
         assert "pehe_plug" in val
         assert val["pehe"].shape[0] == R
