@@ -1,6 +1,6 @@
 import numpy as np
-from metrics_helpers import pehe, cross_predict_tau
-from xlearner import XlearnerWrapper
+from src.metrics_helpers import pehe, cross_predict_tau
+from src.xlearner import XlearnerWrapper
 
 
 def run_experiment(

@@ -1,7 +1,7 @@
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from catboost import CatBoostRegressor, CatBoostClassifier
 from skopt.space import Integer
-from tuning import grid_search, random_search, bayesian_search
+from src.tuning import grid_search, random_search, bayesian_search
 
 
 R = 5

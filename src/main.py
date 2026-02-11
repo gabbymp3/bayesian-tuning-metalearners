@@ -4,9 +4,9 @@ import matplotlib.pyplot as plt
 import seaborn as sns
 import warnings
 
-from experiment import run_experiment
-from dgp import simulate_dataset
-from config import (
+from src.experiment import run_experiment
+from src.dgp import simulate_dataset
+from src.config import (
     R,
     dgp_params,
     rf_config,
