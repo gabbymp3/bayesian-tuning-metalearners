@@ -34,6 +34,38 @@ def expand_param_grid(param_grid):
         yield dict(zip(keys, combo))
 
 
+def sample_from_distribution(dist, rng):
+    """
+    Sample from:
+    - list/tuple
+    - scipy distributions
+    - skopt spaces (Integer, Real, Categorical)
+    """
+
+    # Discrete list
+    if isinstance(dist, (list, tuple)):
+        return rng.choice(dist)
+
+    # If distribution has rvs (scipy or skopt)
+    if hasattr(dist, "rvs"):
+        # Convert Generator -> integer seed
+        seed = rng.integers(0, 1_000_000_000)
+        val = dist.rvs(random_state=seed)
+    
+        if isinstance(val, (list, np.ndarray)):
+            return val.item()
+
+    # skopt Integer / Real fallback
+    if hasattr(dist, "low") and hasattr(dist, "high"):
+        return rng.integers(dist.low, dist.high + 1)
+    
+    
+    if isinstance(dist, Categorical):
+        return rng.choice(dist.categories)
+
+    raise ValueError(f"Unsupported distribution type: {type(dist)}")
+
+
 def evaluate_params_cv(
     estimator,
     params,
@@ -142,7 +174,7 @@ def grid_search(
     best_score = np.inf
     best_params = None
     best_estimator = None
-
+    print("Expanding parameter grid...")
     for params in expand_param_grid(param_grid):
         score = evaluate_params_cv(
             estimator, params, X, Y, W, cv=cv, random_state=random_state
@@ -156,7 +188,7 @@ def grid_search(
             best_params = params
             best_estimator = clone(estimator).set_params(**params)
             best_estimator.fit(X, Y, W=W)
-
+    print("Grid search complete.")
     return best_estimator, best_params, best_score
 
 
@@ -222,7 +254,15 @@ def random_search(
     best_params = None
     best_estimator = None
 
-    for params in ParameterSampler(param_dist, n_iter=n_iter, random_state=random_state):
+    rng = np.random.default_rng(random_state)
+
+    print("Random search starting...")
+    for i in range(n_iter):
+        params = {
+            key: sample_from_distribution(dist, rng)
+            for key, dist in param_dist.items()
+        }
+
         score = evaluate_params_cv(
             estimator, params, X, Y, W, cv=cv, random_state=random_state
         )
@@ -235,7 +275,7 @@ def random_search(
             best_params = params
             best_estimator = clone(estimator).set_params(**params)
             best_estimator.fit(X, Y, W=W)
-
+    print("Random search complete.")
     return best_estimator, best_params, best_score
 
 
@@ -247,7 +287,7 @@ def bayesian_search(
     Y,
     W,
     cv=5,
-    n_iter=25,
+    n_iter=20,
     random_state=123,
     verbose=False
 ):
@@ -310,7 +350,7 @@ def bayesian_search(
     best_score = np.inf
     best_params = None
     best_estimator = None
-
+    print("Bayesian search starting...")
     for it in range(n_iter):
         x = optimizer.ask()
         params = dict(zip(param_names, x))
@@ -329,5 +369,5 @@ def bayesian_search(
             best_params = params
             best_estimator = clone(estimator).set_params(**params)
             best_estimator.fit(X, Y, W=W)
-
+    print("Bayesian search complete.")
     return best_estimator, best_params, best_score

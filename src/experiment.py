@@ -60,21 +60,24 @@ def run_experiment(
                 if Tu["fn"].__name__ == "grid_search":
                     best_estimator, best_params, best_score = Tu["fn"](
                         estimator=base_estimator,
-                        param_grid=Tu.get("param_space"),
+                        param_grid=Tu["param_grid"],
                         X=X,
                         Y=Y,
                         W=W,
                         **Tu.get("kwargs", {})
                     )
-                else:  # random_search or bayesian_search
+                elif Tu["fn"].__name__ in ["random_search", "bayesian_search"]:
                     best_estimator, best_params, best_score = Tu["fn"](
                         estimator=base_estimator,
-                        param_dist=Tu.get("param_space"),
+                        param_dist=Tu["param_dist"],
                         X=X,
                         Y=Y,
                         W=W,
                         **Tu.get("kwargs", {})
                     )
+                
+                else:
+                    raise ValueError(f"Unknown tuning function {Tu['fn']}")
 
                 # -------------------------------
                 # Estimate CATE

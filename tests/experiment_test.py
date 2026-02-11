@@ -28,8 +28,8 @@ def tuners():
         {
             "name": "grid",
             "fn": grid_search,
-            "param_space": {"models__n_estimators": [5, 10]},
-            "kwargs": {"cv": 3, "verbose": False}
+            "param_grid": {"models__n_estimators": [5, 10]},
+            "kwargs": {"cv": 3}
         }
     ]
 
