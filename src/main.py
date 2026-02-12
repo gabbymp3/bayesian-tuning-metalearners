@@ -1,94 +1,100 @@
 import os
+import importlib
 import pandas as pd
-import matplotlib.pyplot as plt
-import seaborn as sns
 import warnings
 
 from src.experiment import run_experiment
 from src.dgp import simulate_dataset
-from src.config import (
-    R,
-    dgp_params,
-    rf_config,
-    rf_tuners,
-    cb_config,
-    cb_tuners
-)
 
 warnings.filterwarnings("ignore")
 
-output_dir = "experiment_results"
-os.makedirs(output_dir, exist_ok=True)
 
-all_summaries = []
-all_raw_rows = []
+# -------------------------------------------------
+# Select which experiments to run
+# -------------------------------------------------
 
-
-# ----------------------------------
-# RUN RF EXPERIMENT
-# ----------------------------------
-rf_summary, rf_raw = run_experiment(
-    learner_config=rf_config,
-    tuners=rf_tuners,
-    R=R,
-    simulate_dataset_fn=simulate_dataset,
-    dgp_params=dgp_params,
-    base_seed=42
-)
-
-# ----------------------------------
-# RUN CATBOOST EXPERIMENT
-# ----------------------------------
-cb_summary, cb_raw = run_experiment(
-    learner_config=cb_config,
-    tuners=cb_tuners,
-    R=R,
-    simulate_dataset_fn=simulate_dataset,
-    dgp_params=dgp_params,
-    base_seed=42
-)
+CONFIGS_TO_RUN = [
+    "config_1d",
+    # "config_2d",
+    # "config_4d",
+    # "config_6d",
+]
 
 
-# ----------------------------------
-# Combine results
-# ----------------------------------
-all_summaries.extend(rf_summary)
-all_summaries.extend(cb_summary)
+# -------------------------------------------------
+# Run experiments
+# -------------------------------------------------
 
-for learner_raw, learner_name in [
-    (rf_raw, "x_rf"),
-    (cb_raw, "x_cb"),
-]:
-    for tuner_name, metrics in learner_raw.items():
-        for r, (pehe, pehe_plug) in enumerate(
-            zip(metrics["pehe"], metrics["pehe_plug"])
-        ):
-            all_raw_rows.append({
-                "learner": learner_name,
-                "tuner": tuner_name,
-                "rep": r,
-                "pehe": pehe,
-                "pehe_plug": pehe_plug
-            })
+for config_name in CONFIGS_TO_RUN:
+    print("\n" + "="*80)
+    print(f"\nRunning experiment: {config_name}")
+    print("="*80)
 
+    module = importlib.import_module(
+        f"src.experiment_configs.{config_name}"
+    )
 
-summary_df = pd.DataFrame(all_summaries)
-raw_df = pd.DataFrame(all_raw_rows)
+    config = module.get_config()
 
-summary_df.to_csv(os.path.join(output_dir, "summary.csv"), index=False)
-raw_df.to_csv(os.path.join(output_dir, "raw_results.csv"), index=False)
+    for learner in config["learners"]:
+        if learner["name"] == "x_rf":
+            continue
 
+        print(f"  → Learner: {learner['name']}")
+        print("-"*50)
 
-# ----------------------------------
-# Plot
-# ----------------------------------
-sns.set(style="whitegrid")
+        summary, raw_results = run_experiment(
+            learner_config={
+                "name": learner["name"],
+                "models": learner["models"],
+                "propensity_model": learner["propensity_model"],
+            },
+            tuners=learner["tuners"],
+            R=config["R"],
+            simulate_dataset_fn=simulate_dataset,
+            dgp_params=config["dgp_params"],
+            base_seed=config["base_seed"],
+        )
 
-plt.figure(figsize=(10, 6))
-sns.boxplot(data=raw_df, x="tuner", y="pehe", hue="learner")
-plt.title("PEHE Distribution")
-plt.tight_layout()
-plt.savefig(os.path.join(output_dir, "pehe_boxplot.png"))
-plt.close()
+        # -------------------------------------------------
+        # Create output directory
+        # -------------------------------------------------
 
-print("Experiments completed successfully.")
+        output_dir = os.path.join(
+            "results",
+            config["name"],
+            learner["name"],
+        )
+        os.makedirs(output_dir, exist_ok=True)
+
+        # -------------------------------------------------
+        # Save summary
+        # -------------------------------------------------
+
+        summary_df = pd.DataFrame(summary)
+        summary_path = os.path.join(output_dir, "summary.csv")
+        summary_df.to_csv(summary_path, index=False)
+
+        # -------------------------------------------------
+        # Save raw results
+        # -------------------------------------------------
+
+        raw_rows = []
+        for tuner_name, metrics in raw_results.items():
+            for r, (pehe, pehe_plug) in enumerate(
+                zip(metrics["pehe"], metrics["pehe_plug"])
+            ):
+                raw_rows.append({
+                    "learner": learner["name"],
+                    "tuner": tuner_name,
+                    "rep": r,
+                    "pehe": pehe,
+                    "pehe_plug": pehe_plug,
+                })
+
+        raw_df = pd.DataFrame(raw_rows)
+        raw_path = os.path.join(output_dir, "raw_results.csv")
+        raw_df.to_csv(raw_path, index=False)
+
+        print(f"  Saved results of {learner['name']} to {output_dir}")
+    print(f"Experiment {config_name} completed.")
