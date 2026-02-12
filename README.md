@@ -10,10 +10,12 @@ question of model configuration and tuning. In particular, hyperparameter tuning
 
 This thesis seeks to address the issue of hyperparameter tuning in the development of causal ML models, asking whether a Bayesian approach to hyperparameter tuning can deliver better performance than the standard frequentist-style automatic tuning methods. The analysis focuses on causal ML methods for estimating conditional average treatment effects, evaluating how such tuning strategies affect the credibility of estimated treatment effects, and conceptualizing the problem of tuning from two opposing statistical philosophies.
 
-## Notes
-(This readme will be updated with more information about simulation + experiment setup --  below are some notes for now)
-
-#### Hyperparameter Tuning Framework
-Random & Bayesian Search:
-- `n_iter` set to 10 * d for d-dimensional search space
+**Notes**
+(This readme will be updated with more information about simulation + experiment setup --  just some working notes)
+- Random & Bayesian Search:
+  - `n_iter` set to 10 * d for d-dimensional search space
+- Base learners:
+  - `catboost_info` generation
+- XLearner
+  - `models` vs `propensity_model` vs `cate_models`
 
