@@ -34,6 +34,7 @@ def run_experiment(
         for tuner in tuners
     }
 
+    print("Monte Carlo simulation starting...")
     for r in range(R):
 
         X, W, Y, mu0, mu1, Y0, Y1, tau, e = simulate_dataset_fn(
@@ -64,6 +65,7 @@ def run_experiment(
                     X=X, Y=Y, W=W,
                     **tuner.get("kwargs", {})
                 )
+            print("Tuning complete.")
 
             tau_hat = best_estimator.predict(X)
 
@@ -91,5 +93,5 @@ def run_experiment(
             "pehe_plug_mean": float(metrics["pehe_plug"].mean()),
             "pehe_plug_var": float(metrics["pehe_plug"].var(ddof=1)),
         })
-
+    print("Monte Carlo simulation complete.")
     return summary, raw_results

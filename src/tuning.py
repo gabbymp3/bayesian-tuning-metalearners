@@ -185,7 +185,7 @@ def grid_search(
     best_score = np.inf
     best_params = None
     best_estimator = None
-    print("Expanding parameter grid...")
+    print("Grid search starting...")
     for params in expand_param_grid(param_grid):
         score = evaluate_params_cv(
             estimator, params, X, Y, W, cv=cv, random_state=random_state
