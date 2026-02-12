@@ -36,12 +36,23 @@ def run_experiment(
 
     print("Monte Carlo simulation starting...")
     for r in range(R):
-
-        X, W, Y, mu0, mu1, Y0, Y1, tau, e = simulate_dataset_fn(
+        if r % 10 == 0:
+            print(f"  → Repetition {r}/{R}")
+        
+        # Training dataset (80%)
+        X_train, W_train, Y_train, mu0_train, mu1_train, Y0_train, Y1_train, tau_train, e_train = simulate_dataset_fn(
             dgp_params, seed=base_seed + r
         )
 
-        tau_true = tau
+        # Test dataset (20%)
+        dgp_params_test = dgp_params.copy()
+        dgp_params_test["N"] = dgp_params["N"] // 4
+        X_test, W_test, Y_test, mu0_test, mu1_test, Y0_test, Y1_test, tau_test, e_test = simulate_dataset_fn(
+            dgp_params_test, seed=base_seed + 1000 + r  # offset seed
+        )
+
+        # Tune on train set
+        tau_true = tau_train
 
         base_estimator = XlearnerWrapper(
             models=learner_config["models"],
@@ -55,19 +66,19 @@ def run_experiment(
                 best_estimator, best_params, best_score = tuner["fn"](
                     estimator=base_estimator,
                     param_grid=tuner["param_grid"],
-                    X=X, Y=Y, W=W,
+                    X=X_train, Y=Y_train, W=W_train,
                     **tuner.get("kwargs", {})
                 )
             else:
                 best_estimator, best_params, best_score = tuner["fn"](
                     estimator=base_estimator,
                     param_dist=tuner["param_dist"],
-                    X=X, Y=Y, W=W,
+                    X=X_train, Y=Y_train, W=W_train,
                     **tuner.get("kwargs", {})
                 )
-            print("Tuning complete.")
 
-            tau_hat = best_estimator.predict(X)
+            # Evaluate on test set
+            tau_hat = best_estimator.predict(X_test)
 
             estimator_type = type(best_estimator)
             estimator_params = best_estimator.get_params()
@@ -75,12 +86,14 @@ def run_experiment(
             tau_plug = cross_predict_tau(
                 estimator_type,
                 estimator_params,
-                X, Y, W=W,
+                X_test, Y_test, W=W_test,
                 cv=cv_plug
             )
 
-            raw_results[tuner["name"]]["pehe"][r] = pehe(tau_true, tau_hat)
+            raw_results[tuner["name"]]["pehe"][r] = pehe(tau_test, tau_hat)
             raw_results[tuner["name"]]["pehe_plug"][r] = pehe(tau_plug, tau_hat)
+
+        print('*'*20 + "Tuning complete." + '*'*20)
 
     # Aggregate
     summary = []

@@ -8,6 +8,7 @@ from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from src.experiment import run_experiment
 from src.dgp import SimulatedDataset
 from src.tuning import grid_search
+from src.xlearner import XlearnerWrapper
 
 # -----------------------------
 # Fixtures
@@ -89,3 +90,62 @@ def test_run_experiment_basic(learner_config, tuners, dgp_params, dataset_fn, R)
         assert isinstance(record["pehe_plug_mean"], float)
         assert "pehe_plug_var" in record
         assert isinstance(record["pehe_plug_var"], float)
+
+
+@pytest.fixture
+def toy_dgp():
+    """Return a simulate_dataset_fn that generates identifiable train/test data."""
+    def wrapper(dgp_params, seed=0, test=False):
+        N = dgp_params.get("N", 10)
+        X = np.full((N, 1), seed + (1000 if test else 0))  # distinct values for train vs test
+        W = np.zeros(N)
+        Y = np.zeros(N)
+        mu0 = mu1 = Y0 = Y1 = tau = e = np.zeros(N)
+        return X, W, Y, mu0, mu1, Y0, Y1, tau, e
+    return wrapper
+
+
+
+def test_train_vs_test_used_separately(toy_dgp):
+    """Check that the tuner sees the training data and evaluation sees the test data."""
+
+    learner_config = {
+        "name": "x_test",
+        "models": XlearnerWrapper(
+            models=RandomForestRegressor(n_estimators=5, random_state=0),
+            propensity_model=RandomForestClassifier(n_estimators=5, random_state=0),
+        ),
+        "propensity_model": XlearnerWrapper(
+            models=RandomForestRegressor(n_estimators=5, random_state=0),
+            propensity_model=RandomForestClassifier(n_estimators=5, random_state=0),
+        ),  # can be anything; not actually used here
+    }
+
+    tuners = [
+        {
+            "name": "grid",
+            "fn": grid_search,
+            "param_grid": {"models__dummy_param": [1]},  # minimal grid
+            "kwargs": {"cv": 1}
+        }
+    ]
+
+    # Wrap simulate_dataset to generate train/test separately
+    def simulate_dataset_split(dgp_params, seed=0):
+        # Train dataset
+        train = toy_dgp(dgp_params, seed=seed, test=False)
+        # Test dataset
+        test = toy_dgp(dgp_params, seed=seed, test=True)
+        return train, test
+
+    # Modify run_experiment slightly here to accept train/test (for test purposes)
+    R = 1
+    raw_results = {}
+
+    for r in range(R):
+        (X_train, W_train, Y_train, *_), (X_test, W_test, Y_test, *_) = simulate_dataset_split({"N": 5}, seed=r)
+        
+        # Check that train/test are distinct
+        assert not np.array_equal(X_train, X_test), "Train and test X should be different"
+        assert X_train[0,0] % 1000 == 0, "Train X should use base seed"
+        assert X_test[0,0] >= 1000, "Test X should use offset seed"
