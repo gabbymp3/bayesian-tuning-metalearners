@@ -37,31 +37,43 @@ def expand_param_grid(param_grid):
 def sample_from_distribution(dist, rng):
     """
     Sample from:
-    - list/tuple
-    - scipy distributions
+    - list / tuple / np.ndarray
+    - scipy distributions with rvs()
     - skopt spaces (Integer, Real, Categorical)
     """
-
-    # Discrete list
-    if isinstance(dist, (list, tuple)):
+    # List, tuple, or ndarray
+    if isinstance(dist, (list, tuple, np.ndarray)):
+        if isinstance(dist, np.ndarray) and dist.size == 1:
+            return dist.item()
         return rng.choice(dist)
 
     # If distribution has rvs (scipy or skopt)
     if hasattr(dist, "rvs"):
-        # Convert Generator -> integer seed
         seed = rng.integers(0, 1_000_000_000)
         val = dist.rvs(random_state=seed)
-    
-        if isinstance(val, (list, np.ndarray)):
-            return val.item()
+        # If val is a list or ndarray
+        if isinstance(val, np.ndarray):
+            if val.size == 1:
+                return val.item()
+            else:
+                return rng.choice(val)
+        elif isinstance(val, list):
+            if len(val) == 1:
+                return val[0]
+            else:
+                return rng.choice(val)
+        else:
+            return val
 
-    # skopt Integer / Real fallback
-    if hasattr(dist, "low") and hasattr(dist, "high"):
+    # skopt Integer / Real
+    if isinstance(dist, Integer):
         return rng.integers(dist.low, dist.high + 1)
-    
+    if isinstance(dist, Real):
+        return rng.uniform(dist.low, dist.high)
     if isinstance(dist, Categorical):
         return rng.choice(dist.categories)
 
+    # Fallback
     raise ValueError(f"Unsupported distribution type: {type(dist)}")
 
 

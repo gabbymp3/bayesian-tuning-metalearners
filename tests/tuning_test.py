@@ -7,11 +7,11 @@ import pytest
 from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor, RandomForestClassifier
 from skopt.space import Integer, Categorical, Real
-from scipy.stats import randint
+from scipy.stats import randint, uniform
 from econml.metalearners import XLearner
 from src.dgp import SimulatedDataset
 from src.xlearner import XlearnerWrapper
-from src.tuning import grid_search, random_search, bayesian_search
+from src.tuning import grid_search, random_search, bayesian_search, sample_from_distribution
 
 
 @pytest.fixture
@@ -157,3 +157,45 @@ def test_tuning_methods(dataset, base_model, search_fn):
     assert isinstance(best_params, dict)
     assert isinstance(best_score, float)
     assert best_score > 0
+
+
+# -----------------------------
+# Parameterized test for distribution sampling across all supported types
+# -----------------------------
+@pytest.mark.parametrize("dist_type", [
+    # Plain Python types
+    [1, 2, 3],                # list
+    (4, 5, 6),                # tuple
+    np.array([7, 8, 9]),      # multi-element ndarray
+    np.array([10]),           # single-element ndarray
+
+    # Skopt spaces
+    Integer(1, 5),
+    Real(0.1, 0.5),
+    Categorical(["a", "b", "c"]),
+
+    # Scipy distributions
+    randint(1, 10),
+    uniform(0, 1),
+])
+
+def test_sample_from_distribution(dist_type):
+    rng = np.random.default_rng(seed=42)
+
+    # Run multiple times to catch randomness issues
+    for _ in range(10):
+        val = sample_from_distribution(dist_type, rng)
+        # val should never be an array or list
+        assert not isinstance(val, (list, np.ndarray))
+        # val should not be None
+        assert val is not None
+
+    # Extra check for categorical / integer ranges
+    if isinstance(dist_type, (list, tuple, np.ndarray)):
+        assert val in dist_type or np.size(dist_type) > 1
+    if isinstance(dist_type, Integer):
+        assert dist_type.low <= val <= dist_type.high
+    if isinstance(dist_type, Real):
+        assert dist_type.low <= val <= dist_type.high
+    if isinstance(dist_type, Categorical):
+        assert val in dist_type.categories
