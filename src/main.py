@@ -37,11 +37,11 @@ for config_name in CONFIGS_TO_RUN:
     config = module.get_config()
 
     for learner in config["learners"]:
-        if learner["name"] == "x_rf":
-            continue
+        #if learner["name"] == "x_rf": # need to check catboost first but uncomment
+        #    continue
 
         print(f"  → Learner: {learner['name']}")
-        print("-"*50)
+        print("-"*80)
 
         summary, raw_results = run_experiment(
             learner_config={
