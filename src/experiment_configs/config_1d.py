@@ -4,13 +4,6 @@ from sklearn.linear_model import LogisticRegression
 from skopt.space import Integer, Real
 from src.tuning import grid_search, random_search, bayesian_search
 
-from sklearn.ensemble import RandomForestRegressor
-from sklearn.linear_model import LogisticRegression
-from catboost import CatBoostRegressor
-from skopt.space import Integer, Real
-
-from src.tuning import grid_search, random_search, bayesian_search
-
 
 def get_config():
 
@@ -27,7 +20,7 @@ def get_config():
                     "name": "grid",
                     "fn": grid_search,
                     "param_grid": {
-                        "models__n_estimators": [20, 50, 80, 110, 140]
+                        "models__n_estimators": [20, 60, 100, 140]
                     },
                     "kwargs": {"cv": 3}
                 },
@@ -58,7 +51,7 @@ def get_config():
                     "name": "grid",
                     "fn": grid_search,
                     "param_grid": {
-                        "models__learning_rate": [0.01, 0.03, 0.05, 0.1, 0.15]
+                        "models__learning_rate": [0.01, 0.05, 0.1, 0.15]
                     },
                     "kwargs": {"cv": 3}
                 },
