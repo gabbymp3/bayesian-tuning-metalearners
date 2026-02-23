@@ -11,6 +11,22 @@ question of model configuration and tuning. In particular, hyperparameter tuning
 This thesis seeks to address the issue of hyperparameter tuning in the development of causal ML models, asking whether a Bayesian approach to hyperparameter tuning can deliver better performance than the standard frequentist-style automatic tuning methods. The analysis focuses on causal ML methods for estimating CATE, evaluating how such tuning strategies affect the credibility of estimated treatment effects, conceptualizing the problem of tuning from two opposing statistical philosophies.
 
 ## Repository overview
+
+```text
+bayesian-tuning-metalearners/
+├── src/
+│   ├── dgp.py
+│   └── xlearner.py
+│   └── metrics_helpers.py
+│   └── tuning.py
+│   └── experiment.py
+│   └── main.py
+│   └── experiment_configs/
+├── pyproject.toml
+└── README.md
+```
+
+
 `src/`
   `dgp.py` contains the `SimulatedDataset` class and the data generating function `simulate_dataset()` used in these simulations. The DGP is based on the procedure in Künzel et al. (2019) with the following modifications:
 
@@ -25,14 +41,16 @@ This thesis seeks to address the issue of hyperparameter tuning in the developme
 
   `tuning.py` contains all tuning implementations, `grid_search()`, `random_search()`, and `bayesian_search()`. All tuning functions use the same internal cross-validation process, differing only in their search algorithms. Each returns the fitted model, parameters, and best score achieved after tuning.
 
-  `experiment.py`
+  `experiment.py` implements one Monte-Carlo simulation using R repetitions. The experimental workflow is as follows: 
+  - Given a data-generating function, base learner configuration, tuner configuration, and R value:
+    - For each Monte-Carlo repetition 1 through R, simulate a training and test dataset using the same DGP parameters `dgp_params` and a different random seed. Then construct an `Xlearner` with parameters given by the base learner setup, `learner_config`.
+      - For each tuner configuration in `tuners`, tune an XLearner model on the training data. Then, use the test data to estimate CATE `tau_hat` and cross-predict `tau_plug`, and calculate PEHE and PEHE plugin values.
+      - Store the learner-tuner combination and its resulting PEHE and PEHE plugin values in `raw_results`, and generate a summary table containing the mean and variance of both PEHE metrics across Monte-Carlo simulations.
 
-  `main.py`
+  `main.py` conducts the entire pipeline, running all specified experiments, and storing their results in an output directory.
 
-`experiment_configs/`
-
+  
 **Notes**
-(This readme will be updated with more information about simulation + experiment setup --  just some working notes)
 - Random & Bayesian Search:
   - `n_iter` set to 10 * d for d-dimensional search space
 - Base learners:
