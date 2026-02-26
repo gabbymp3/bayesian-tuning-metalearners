@@ -36,7 +36,7 @@ def run_experiment(
 
     print("Monte Carlo simulation starting...")
     for r in range(R):
-        print(f"  → Repetition {r}/{R}")
+        print(f"  → Repetition {r+1}/{R}")
         
         # Training dataset (80%)
         X_train, W_train, Y_train, mu0_train, mu1_train, Y0_train, Y1_train, tau_train, e_train = simulate_dataset_fn(
