@@ -3,9 +3,7 @@
 This repository contains the programmatic implementation of my (in progress) undergraduate thesis research for MMSS at Northwestern University. The objective of this research is to compare the performance of Bayesian and frequentist (grid and random) hyperparameter tuning methods for X-learner models (from `EconML`) in the context of heterogeneous treatment effect estimation.
 
 ## Objective
-Causal ML combines machine learning algorithms with econometric identification strategies to estimate treatment effects; heterogeneous treatment effect estimation is particularly valuable in observational settings where the efficacy
-of intervention regimes benefits from personalization. Despite promising advancements in causal ML, empirical applications remain limited by challenges that arise from both the causal side and the algorithmic sides, especially the
-question of model configuration and tuning. In particular, hyperparameter tuning is frequently ad hoc or neglected in causal applications, undermining model performance and broader empirical claims on treatment effects.
+Causal ML combines machine learning algorithms with econometric identification strategies to estimate treatment effects; heterogeneous treatment effect estimation is particularly valuable in observational settings where the efficacy of intervention regimes benefits from personalization. Despite promising advancements in causal ML, empirical applications remain limited by challenges that arise from both the causal side and the algorithmic sides, especially the question of model configuration and tuning. In particular, hyperparameter tuning is frequently ad hoc or neglected in causal applications, undermining model performance and broader empirical claims on treatment effects.
 
 
 This thesis seeks to address the issue of hyperparameter tuning in the development of causal ML models, asking whether a Bayesian approach to hyperparameter tuning can deliver better performance than the standard frequentist-style automatic tuning methods. The analysis focuses on causal ML methods for estimating CATE, evaluating how such tuning strategies affect the credibility of estimated treatment effects, conceptualizing the problem of tuning from two opposing statistical philosophies.
@@ -22,6 +20,10 @@ bayesian-tuning-metalearners/
 │   └── experiment.py
 │   └── main.py
 │   └── experiment_configs/
+│       ├── config_1d.py
+│       └── config_2d.py
+│       └── config_4d.py
+│       └── config62d.py
 ├── pyproject.toml
 └── README.md
 ```
@@ -47,7 +49,24 @@ bayesian-tuning-metalearners/
       - For each tuner configuration in `tuners`, tune an XLearner model on the training data. Then, use the test data to estimate CATE `tau_hat` and cross-predict `tau_plug`, and calculate PEHE and PEHE plugin values.
       - Store the learner-tuner combination and its resulting PEHE and PEHE plugin values in `raw_results`, and generate a summary table containing the mean and variance of both PEHE metrics across Monte-Carlo simulations.
 
-  `main.py` conducts the entire pipeline, running all specified experiments, and storing their results in an output directory.
+  `main.py` conducts the entire pipeline, running all specified experiments, and storing their results in an output directory with the following format:
+
+  ```text
+bayesian-tuning-metalearners/
+├── results/
+│   ├── x_cb/
+│       ├── 1d/
+│         └── raw_results.csv
+│         └── summary.csv
+│       ├── 2d/ ...
+│       ├── 4d/ ...
+│       ├── 6d/ ...
+│   └── x_rf/
+│       ├── 1d/ ...
+│       ├── 2d/ ...
+│       ├── 4d/ ...
+|       ├── 6d/ ...
+```
 
   
 **Notes**
