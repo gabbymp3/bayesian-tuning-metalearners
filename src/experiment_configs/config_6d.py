@@ -10,7 +10,7 @@ def get_config():
     Docstring for get_config
     """
 
-    R = 20
+    R = 35
     dgp_params = {"N": 1000, "d": 15, "alpha": 0.5}
 
     learners = [
