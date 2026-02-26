@@ -60,8 +60,9 @@ for config_name in CONFIGS_TO_RUN:
 
         output_dir = os.path.join(
             "results",
-            config["name"],
+            f"R_{config['R']}",
             learner["name"],
+            config["name"],
         )
         os.makedirs(output_dir, exist_ok=True)
 
