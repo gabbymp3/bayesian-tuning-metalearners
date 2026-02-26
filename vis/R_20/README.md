@@ -1,6 +1,6 @@
 # Boxplots for R=20 Results
 
-This folder contains a Jupyter notebook for creating boxplots from the experimental results in the `results_20` folder.
+This folder contains a Jupyter notebook for creating boxplots from the experimental results in the `results/R_20` folder.
 
 ## Contents
 
@@ -54,5 +54,5 @@ The boxplots use the following color scheme for tuners:
 
 ## Data Source
 
-All data is loaded from the `../results_20/` directory, which contains raw results from experiments with 20 repetitions for each configuration.
+All data is loaded from the `../results/R_20/` directory, which contains raw results from experiments with 20 repetitions for each configuration.
 
