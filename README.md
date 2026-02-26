@@ -53,7 +53,7 @@ bayesian-tuning-metalearners/
 
   ```text
 bayesian-tuning-metalearners/
-├── results/
+├── results_R_{R value}/
 │   ├── x_cb/
 │       ├── 1d/
 │         └── raw_results.csv

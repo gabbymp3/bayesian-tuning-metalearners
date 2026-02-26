@@ -12,7 +12,7 @@ import shutil
 def combine_results():
     """Combine results from R_5, R_10, and R_20 into R_35."""
     
-    # Define source folders - all now use the same naming convention
+    # Define source folders
     source_folders = {
         'R_5': {
             'x_cb': ['1d', '2d', '4d', '6d'],
