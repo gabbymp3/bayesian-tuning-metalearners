@@ -59,8 +59,7 @@ for config_name in CONFIGS_TO_RUN:
         # -------------------------------------------------
 
         output_dir = os.path.join(
-            "results",
-            f"R_{config['R']}",
+            f"results_R_{config['R']}",
             learner["name"],
             config["name"],
         )
