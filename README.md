@@ -10,6 +10,8 @@ This thesis seeks to address the issue of hyperparameter tuning in the developme
 
 ## Repository overview
 
+All main scripts are stored in the `src` module. Corresponding pytest modules for some of these scripts can be found in the `tests` folder.
+
 ```text
 bayesian-tuning-metalearners/
 ├── src/
@@ -68,7 +70,26 @@ bayesian-tuning-metalearners/
 |       ├── 6d/ ...
 ```
 
-  
+
+## Replication
+
+This module requires python version 3.10 or above and uses `poetry` for dependency management. To run the experiments on your local machine, do the following:
+
+First make a local clone of this repository. Then activate the virtual environment using:
+```
+source .venv/bin/activate
+```
+Next install required dependencies:
+```
+poetry install
+```
+To run the experiment pipeline, run:
+```
+python -m src.main
+```
+
+Note that the experiment configurations can be altered. To change these configurations, edit or create a new configuration file in `src/experiment_configs` and update the filepath in the first section of `main.py`. Happy experimentation :) 
+
 **Notes**
 - Random & Bayesian Search:
   - `n_iter` set to 10 * d for d-dimensional search space
