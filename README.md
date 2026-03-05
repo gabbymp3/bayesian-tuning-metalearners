@@ -19,6 +19,7 @@ bayesian-tuning-metalearners/
 │   └── xlearner.py
 │   └── metrics_helpers.py
 │   └── tuning.py
+│   └── convergence.py
 │   └── experiment.py
 │   └── main.py
 │   └── experiment_configs/
@@ -43,7 +44,9 @@ bayesian-tuning-metalearners/
 
   `metrics_helpers.py` contains the helper functions used in cross-validation and model evaluation, calculating observed outcome MSE, PEHE/PEHEplug, and TAUplug.
 
-  `tuning.py` contains all tuning implementations, `grid_search()`, `random_search()`, and `bayesian_search()`. All tuning functions use the same internal cross-validation process, differing only in their search algorithms. Each returns the fitted model, parameters, and best score achieved after tuning.
+  `tuning.py` contains all tuning implementations, `grid_search()`, `random_search()`, and `bayesian_search()`. All tuning functions use the same internal cross-validation process, differing only in their search algorithms. Each returns the fitted model, parameters, best score achieved after tuning, and a history of scores and parameters at each iteration.
+
+  `convergence.py` contains the `ConvergenceTracker` class, which is used to track the convergence of the tuning process. It stores the best score and parameters at each iteration, and can be used to generate convergence plots.
 
   `experiment.py` implements one Monte-Carlo simulation using R repetitions. The experimental workflow is as follows: 
   - Given a data-generating function, base learner configuration, tuner configuration, and R value:
@@ -60,6 +63,13 @@ bayesian-tuning-metalearners/
 │       ├── 1d/
 │         └── raw_results.csv
 │         └── summary.csv
+│         └── convergence/
+│             ├── random/
+│             │   └── convergence_R{r}.csv
+|                   ...
+│             └── bayes/
+│                 └── convergence_R{r}.csv
+|                   ...
 │       ├── 2d/ ...
 │       ├── 4d/ ...
 │       ├── 6d/ ...
