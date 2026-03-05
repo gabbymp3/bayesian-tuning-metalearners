@@ -13,7 +13,8 @@ def run_experiment(
     dgp_params,
     base_seed=0,
     cv_plug=5,
-    output_dir=None
+    output_dir=None,
+    max_convergence_reps=5
 ):
 
     """
@@ -64,7 +65,9 @@ def run_experiment(
         for tuner in tuners:
 
             # Initialize convergence tracker
-            tracker = ConvergenceTracker(maximize=False)
+            tracker = None
+            if r < max_convergence_reps:
+                tracker = ConvergenceTracker(maximize=False)
 
             # Select correct argument name
             if tuner["fn"].__name__ == "grid_search":
@@ -82,15 +85,17 @@ def run_experiment(
                     **tuner.get("kwargs", {})
                 )
 
-                for entry in history:
-                    tracker.log(entry["score"], entry["params"])
-                conv_path = os.path.join(
-                    output_dir,
-                    "convergence",
-                    tuner['name'],
-                    f"convergence_R{r}.csv"
-                )
-                tracker.save(conv_path)
+                if tracker is not None:
+                    for entry in history:
+                        tracker.log(entry["score"], entry["params"])
+                    conv_path = os.path.join(
+                        output_dir,
+                        "convergence",
+                        tuner['name'],
+                        f"convergence_R{r}.csv"
+                    )
+                    tracker.save(conv_path)
+
             # Evaluate on test set
             tau_hat = best_estimator.predict(X_test)
 
