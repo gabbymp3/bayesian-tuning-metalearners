@@ -265,6 +265,8 @@ def random_search(
     best_params = None
     best_estimator = None
 
+    history = []
+
     rng = np.random.default_rng(random_state)
 
     print("----Random search starting...")
@@ -278,6 +280,8 @@ def random_search(
             estimator, params, X, Y, W, cv=cv, random_state=random_state
         )
 
+        history.append({"params": params, "score": score})
+
         if verbose:
             print(f"Params {params} | MSE = {score:.4f}")
 
@@ -287,7 +291,7 @@ def random_search(
             best_estimator = clone(estimator).set_params(**params)
             best_estimator.fit(X, Y, W=W)
     print("--------> Random search complete.")
-    return best_estimator, best_params, best_score
+    return best_estimator, best_params, best_score, history
 
 
 
@@ -361,6 +365,8 @@ def bayesian_search(
     best_score = np.inf
     best_params = None
     best_estimator = None
+    history = []
+
     print("---- Bayesian search starting...")
     for it in range(n_iter):
         x = optimizer.ask()
@@ -369,6 +375,8 @@ def bayesian_search(
         score = evaluate_params_cv(
             estimator, params, X, Y, W, cv=cv, random_state=random_state
         )
+
+        history.append({"params": params, "score": score})
 
         optimizer.tell(x, score)
 
@@ -381,4 +389,4 @@ def bayesian_search(
             best_estimator = clone(estimator).set_params(**params)
             best_estimator.fit(X, Y, W=W)
     print("--------> Bayesian search complete.")
-    return best_estimator, best_params, best_score
+    return best_estimator, best_params, best_score, history
