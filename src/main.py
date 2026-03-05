@@ -14,10 +14,10 @@ warnings.filterwarnings("ignore")
 # -------------------------------------------------
 
 CONFIGS_TO_RUN = [
-    "config_1d",
-    "config_2d",
+    #"config_1d",
+    #"config_2d",
     "config_4d",
-    "config_6d",
+    #"config_6d",
 ]
 
 
@@ -52,6 +52,11 @@ for config_name in CONFIGS_TO_RUN:
             simulate_dataset_fn=simulate_dataset,
             dgp_params=config["dgp_params"],
             base_seed=config["base_seed"],
+            output_dir=os.path.join(
+                f"results_R_{config['R']}",
+                learner["name"],
+                config["name"],
+            )
         )
 
         # -------------------------------------------------

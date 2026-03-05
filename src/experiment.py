@@ -1,6 +1,8 @@
+import os
 import numpy as np
 from src.metrics_helpers import pehe, cross_predict_tau
 from src.xlearner import XlearnerWrapper
+from src.convergence import ConvergenceTracker
 
 
 def run_experiment(
@@ -10,7 +12,8 @@ def run_experiment(
     simulate_dataset_fn,
     dgp_params,
     base_seed=0,
-    cv_plug=5
+    cv_plug=5,
+    output_dir=None
 ):
 
     """
@@ -60,6 +63,9 @@ def run_experiment(
 
         for tuner in tuners:
 
+            # Initialize convergence tracker
+            tracker = ConvergenceTracker(maximize=False)
+
             # Select correct argument name
             if tuner["fn"].__name__ == "grid_search":
                 best_estimator, best_params, best_score = tuner["fn"](
@@ -69,13 +75,22 @@ def run_experiment(
                     **tuner.get("kwargs", {})
                 )
             else:
-                best_estimator, best_params, best_score = tuner["fn"](
+                best_estimator, best_params, best_score, history = tuner["fn"](
                     estimator=base_estimator,
                     param_dist=tuner["param_dist"],
                     X=X_train, Y=Y_train, W=W_train,
                     **tuner.get("kwargs", {})
                 )
 
+                for entry in history:
+                    tracker.log(entry["score"], entry["params"])
+                conv_path = os.path.join(
+                    output_dir,
+                    "convergence",
+                    tuner['name'],
+                    f"convergence_R{r}.csv"
+                )
+                tracker.save(conv_path)
             # Evaluate on test set
             tau_hat = best_estimator.predict(X_test)
 
