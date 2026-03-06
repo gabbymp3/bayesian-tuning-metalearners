@@ -26,7 +26,7 @@ bayesian-tuning-metalearners/
 │       ├── config_1d.py
 │       └── config_2d.py
 │       └── config_4d.py
-│       └── config62d.py
+│       └── config_6d.py
 ├── pyproject.toml
 └── README.md
 ```
