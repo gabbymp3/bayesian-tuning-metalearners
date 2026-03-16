@@ -6,6 +6,7 @@ from skopt import Optimizer
 from skopt.space import Real, Categorical, Integer
 from src.metrics_helpers import outcome_mse
 from src.xlearner import XlearnerWrapper
+from sklearn.gaussian_process import GaussianProcessRegressor
 
 
 
@@ -295,7 +296,7 @@ def random_search(
 
 
 
-def bayesian_search(
+def bayesian_search_old(
     estimator,
     param_dist,
     X,
@@ -382,6 +383,82 @@ def bayesian_search(
 
         if verbose:
             print(f"[Iter {it+1}/{n_iter}] Params {params} | MSE = {score:.4f}")
+
+        if score < best_score:
+            best_score = score
+            best_params = params
+            best_estimator = clone(estimator).set_params(**params)
+            best_estimator.fit(X, Y, W=W)
+    print("--------> Bayesian search complete.")
+    return best_estimator, best_params, best_score, history
+
+
+
+
+def bayesian_search(
+    estimator,
+    param_dist,
+    X,
+    Y,
+    W,
+    n_iter,
+    cv=5,
+    random_state=123,
+    verbose=False
+):
+    param_names = list(param_dist.keys())
+    dimensions = list(param_dist.values())
+
+    optimizer = Optimizer(
+        dimensions=dimensions,
+        base_estimator="GP",
+        acq_func="gp_hedge",
+        n_initial_points=10,
+        initial_point_generator="sobol",
+        random_state=random_state
+    )
+
+    best_score = np.inf
+    best_params = None
+    best_estimator = None
+    history = []
+    print("---- Bayesian search starting...")
+    for it in range(n_iter):
+
+        x = optimizer.ask()
+        params = dict(zip(param_names, x))
+
+        score = evaluate_params_cv(
+            estimator, params, X, Y, W, cv=cv, random_state=random_state
+        )
+
+        optimizer.tell(x, score)
+
+        # surrogate diagnostics
+        surrogate = optimizer.base_estimator_
+
+        if surrogate is not None and hasattr(surrogate, "predict"):
+
+            if len(optimizer.Xi) > 1:
+                X_obs = np.array(optimizer.Xi)
+                y_obs = np.array(optimizer.yi)
+
+                gp = GaussianProcessRegressor().fit(X_obs, y_obs)
+                mu, std = gp.predict(np.array(x).reshape(1, -1), return_std=True)
+
+            history.append({
+                "iter": it,
+                "params": params,
+                "score": score,
+                "pred_mu": float(mu) if len(optimizer.Xi) > 1 else None,
+                "pred_std": float(std) if len(optimizer.Xi) > 1 else None,
+            })
+        else:
+            history.append({
+                "iter": it,
+                "params": params,
+                "score": score
+            })
 
         if score < best_score:
             best_score = score
