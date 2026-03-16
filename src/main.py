@@ -59,7 +59,7 @@ for config_name in CONFIGS_TO_RUN:
                 learner["name"],
                 config["name"],
             ),
-            max_convergence_reps=5
+            max_convergence_reps=None
         )
 
         # -------------------------------------------------
