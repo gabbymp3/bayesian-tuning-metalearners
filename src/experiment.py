@@ -1,5 +1,6 @@
 import os
 import numpy as np
+import pandas as pd
 from src.metrics_helpers import pehe, cross_predict_tau
 from src.xlearner import XlearnerWrapper
 from src.convergence import ConvergenceTracker
@@ -14,7 +15,7 @@ def run_experiment(
     base_seed=0,
     cv_plug=5,
     output_dir=None,
-    max_convergence_reps=5
+    max_convergence_reps=None
 ):
 
     """
@@ -66,7 +67,7 @@ def run_experiment(
 
             # Initialize convergence tracker
             tracker = None
-            if r < max_convergence_reps:
+            if max_convergence_reps is not None and r < max_convergence_reps:
                 tracker = ConvergenceTracker(maximize=False)
 
             # Select correct argument name
@@ -85,15 +86,34 @@ def run_experiment(
                     **tuner.get("kwargs", {})
                 )
 
+                # -------------------------------------------------
+                # Save surrogate diagnostics (Bayesian runs)
+                # -------------------------------------------------
+
+                if tuner["name"] == "bayes":
+
+                    conv_base = os.path.join(output_dir, "convergence", tuner["name"])
+                    os.makedirs(conv_base, exist_ok=True)
+
+                    # Save surrogate history
+                    hist_df = pd.DataFrame(history)
+                    hist_path = os.path.join(conv_base, f"surrogate_R{r}.csv")
+                    hist_df.to_csv(hist_path, index=False)
+
+
+                # -------------------------------------------------
+                # Save convergence tracking
+                # -------------------------------------------------
+
                 if tracker is not None:
+
                     for entry in history:
                         tracker.log(entry["score"], entry["params"])
-                    conv_path = os.path.join(
-                        output_dir,
-                        "convergence",
-                        tuner['name'],
-                        f"convergence_R{r}.csv"
-                    )
+
+                    conv_base = os.path.join(output_dir, "convergence", tuner["name"])
+                    os.makedirs(conv_base, exist_ok=True)
+
+                    conv_path = os.path.join(conv_base, f"convergence_R{r}.csv")
                     tracker.save(conv_path)
 
             # Evaluate on test set
