@@ -10,7 +10,7 @@ def get_config():
     Docstring for get_config
     """
 
-    R = 5
+    R = 30
     dgp_params = {"N": 1000, "d": 15, "alpha": 0.5}
 
     learners = [
@@ -28,7 +28,7 @@ def get_config():
                         "models__min_samples_leaf": Integer(1, 20),
                         "models__min_samples_split": Integer(2, 20)
                     },
-                    "kwargs": {"cv": 3, "n_iter": 50}
+                    "kwargs": {"cv": 3, "n_iter": 80}
                 },
                 {
                     "name": "bayes",
@@ -39,7 +39,7 @@ def get_config():
                         "models__min_samples_leaf": Integer(1, 20),
                         "models__min_samples_split": Integer(2, 20)
                     },
-                    "kwargs": {"cv": 3, "n_iter": 50}
+                    "kwargs": {"cv": 3, "n_iter": 80}
                 },
             ]
         },
@@ -57,7 +57,7 @@ def get_config():
                         "models__iterations": Integer(50, 300),
                         "models__l2_leaf_reg": Integer(1, 10)
                     },
-                    "kwargs": {"cv": 3, "n_iter": 50}
+                    "kwargs": {"cv": 3, "n_iter": 80}
                 },
                 {
                     "name": "bayes",
@@ -68,7 +68,7 @@ def get_config():
                         "models__iterations": Integer(50, 300),
                         "models__l2_leaf_reg": Integer(1, 10)
                     },
-                    "kwargs": {"cv": 3, "n_iter": 50}
+                    "kwargs": {"cv": 3, "n_iter": 80}
                 },
             ]
         }

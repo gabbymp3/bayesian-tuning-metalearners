@@ -10,7 +10,7 @@ def get_config():
     Docstring for get_config
     """
 
-    R = 5
+    R = 30
     dgp_params = {"N": 1000, "d": 15, "alpha": 0.5}
 
     learners = [
@@ -30,7 +30,7 @@ def get_config():
                         "models__max_leaf_nodes": Integer(2, 50),
                         "models__bootstrap": [True, False]
                     },
-                    "kwargs": {"cv": 3, "n_iter": 60}
+                    "kwargs": {"cv": 3, "n_iter": 100}
                 },
                 {
                     "name": "bayes",
@@ -43,7 +43,7 @@ def get_config():
                         "models__max_leaf_nodes": Integer(2, 50),
                         "models__bootstrap": [True, False]
                     },
-                    "kwargs": {"cv": 3, "n_iter": 60}
+                    "kwargs": {"cv": 3, "n_iter": 100}
                 },
             ]
         },
@@ -63,7 +63,7 @@ def get_config():
                         "models__random_strength": Real(0.01, 10),
                         "models__subsample": Real(0.1, 1.0)
                     },
-                    "kwargs": {"cv": 3, "n_iter": 60}
+                    "kwargs": {"cv": 3, "n_iter": 100}
                 },
                 {
                     "name": "bayes",
@@ -76,7 +76,7 @@ def get_config():
                         "models__random_strength": Real(0.01, 10),
                         "models__subsample": Real(0.4, 1.0)
                     },
-                    "kwargs": {"cv": 3, "n_iter": 60}
+                    "kwargs": {"cv": 3, "n_iter": 100}
                 },
             ]
         }
