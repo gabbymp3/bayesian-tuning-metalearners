@@ -10,7 +10,7 @@ def get_config():
     Docstring for get_config
     """
 
-    R = 35
+    R = 5
     dgp_params = {"N": 1000, "d": 15, "alpha": 0.5}
 
     learners = [
@@ -23,12 +23,12 @@ def get_config():
                     "name": "random",
                     "fn": random_search,
                     "param_dist": {
-                        "models__n_estimators": Integer(20, 150),
                         "models__max_depth": Integer(3, 10),
                         "models__min_samples_leaf": Integer(1, 20),
                         "models__min_samples_split": Integer(2, 20),
                         "models__max_features": Real(0.1, 1.0),
-                        "models__max_leaf_nodes": Integer(2, 50)
+                        "models__max_leaf_nodes": Integer(2, 50),
+                        "models__bootstrap": [True, False]
                     },
                     "kwargs": {"cv": 3, "n_iter": 60}
                 },
@@ -36,12 +36,12 @@ def get_config():
                     "name": "bayes",
                     "fn": bayesian_search,
                     "param_dist": {
-                        "models__n_estimators": Integer(20, 150),
                         "models__max_depth": Integer(3, 10),
                         "models__min_samples_leaf": Integer(1, 20),
                         "models__min_samples_split": Integer(2, 20),
                         "models__max_features": Real(0.1, 1.0),
-                        "models__max_leaf_nodes": Integer(2, 50)
+                        "models__max_leaf_nodes": Integer(2, 50),
+                        "models__bootstrap": [True, False]
                     },
                     "kwargs": {"cv": 3, "n_iter": 60}
                 },
