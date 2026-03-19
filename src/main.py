@@ -15,10 +15,19 @@ warnings.filterwarnings("ignore")
 
 CONFIGS_TO_RUN = [
     "config_1d",
-    #"config_2d",
+    "config_2d",
     #"config_4d",
     #"config_6d",
 ]
+
+def load_existing_results(raw_path):
+    if os.path.exists(raw_path):
+        df = pd.read_csv(raw_path)
+        completed = set(df["rep"].unique())
+        print(f"    Found existing results with {len(completed)} completed reps")
+        return df, completed
+    else:
+        return pd.DataFrame(), set()
 
 
 # -------------------------------------------------
@@ -42,6 +51,28 @@ for config_name in CONFIGS_TO_RUN:
 
         print(f"  → Learner: {learner['name']}")
         print("-"*80)
+        # -------------------------------------------------
+        # Output directory
+        # -------------------------------------------------
+
+        output_dir = os.path.join(
+            f"3-18results_R_{config['R']}",
+            learner["name"],
+            config["name"],
+        )
+        os.makedirs(output_dir, exist_ok=True)
+
+        raw_path = os.path.join(output_dir, "raw_results.csv")
+
+        # -------------------------------------------------
+        # Load existing results (resume logic)
+        # -------------------------------------------------
+
+        existing_df, completed_reps = load_existing_results(raw_path)
+
+        # -------------------------------------------------
+        # Run experiment (only missing reps)
+        # -------------------------------------------------
 
         summary, raw_results = run_experiment(
             learner_config={
@@ -54,43 +85,26 @@ for config_name in CONFIGS_TO_RUN:
             simulate_dataset_fn=simulate_dataset,
             dgp_params=config["dgp_params"],
             base_seed=config["base_seed"],
-            output_dir=os.path.join(
-                f"results_R_remaining_{config['R']}_2",
-                learner["name"],
-                config["name"],
-            ),
-            max_convergence_reps=None
+            output_dir=output_dir,
+            completed_reps=completed_reps
         )
 
         # -------------------------------------------------
-        # Create output directory
+        # Convert new results to dataframe
         # -------------------------------------------------
 
-        output_dir = os.path.join(
-            f"results_R_{config['R']}",
-            learner["name"],
-            config["name"],
-        )
-        os.makedirs(output_dir, exist_ok=True)
-
-        # -------------------------------------------------
-        # Save summary
-        # -------------------------------------------------
-
-        summary_df = pd.DataFrame(summary)
-        summary_path = os.path.join(output_dir, "summary.csv")
-        summary_df.to_csv(summary_path, index=False)
-
-        # -------------------------------------------------
-        # Save raw results
-        # -------------------------------------------------
-
-        raw_rows = []
+        new_rows = []
         for tuner_name, metrics in raw_results.items():
-            for r, (pehe, pehe_plug) in enumerate(
-                zip(metrics["pehe"], metrics["pehe_plug"])
+            for r, pehe, pehe_plug in zip(
+                metrics["rep"],
+                metrics["pehe"],
+                metrics["pehe_plug"]
             ):
-                raw_rows.append({
+
+                if r in completed_reps:
+                    continue  # avoid duplicates
+
+                new_rows.append({
                     "learner": learner["name"],
                     "tuner": tuner_name,
                     "rep": r,
@@ -98,9 +112,25 @@ for config_name in CONFIGS_TO_RUN:
                     "pehe_plug": pehe_plug,
                 })
 
-        raw_df = pd.DataFrame(raw_rows)
-        raw_path = os.path.join(output_dir, "raw_results.csv")
-        raw_df.to_csv(raw_path, index=False)
+            new_df = pd.DataFrame(new_rows)
 
-        print(f"  Saved results of {learner['name']} to {output_dir}")
+            # -------------------------------------------------
+            # Append + save immediately
+            # -------------------------------------------------
+
+            combined_df = pd.concat([existing_df, new_df], ignore_index=True)
+            combined_df.to_csv(raw_path, index=False)
+
+            print(f"    Saved raw results ({len(combined_df)} rows)")
+
+            # -------------------------------------------------
+            # Save summary (can overwrite safely)
+            # -------------------------------------------------
+
+            summary_df = pd.DataFrame(summary)
+            summary_path = os.path.join(output_dir, "summary.csv")
+            summary_df.to_csv(summary_path, index=False)
+
+            print(f"  Saved results of {learner['name']} to {output_dir}")
+
     print(f"Experiment {config_name} completed.")
