@@ -14,9 +14,9 @@ warnings.filterwarnings("ignore")
 # -------------------------------------------------
 
 CONFIGS_TO_RUN = [
-    "config_1d",
-    "config_2d",
-    #"config_4d",
+    #"config_1d",
+    #"config_2d",
+    "config_4d",
     #"config_6d",
 ]
 
@@ -46,7 +46,7 @@ for config_name in CONFIGS_TO_RUN:
     config = module.get_config()
 
     for learner in config["learners"]:
-        if learner["name"] == "x_rf":
+        if learner["name"] == "x_cb":
             continue
 
         print(f"  → Learner: {learner['name']}")
