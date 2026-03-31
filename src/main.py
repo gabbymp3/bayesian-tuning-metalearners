@@ -14,10 +14,10 @@ warnings.filterwarnings("ignore")
 # -------------------------------------------------
 
 CONFIGS_TO_RUN = [
-    #"config_1d",
-    #"config_2d",
+    "config_1d",
+    "config_2d",
     "config_4d",
-    #"config_6d",
+    "config_6d",
 ]
 
 def load_existing_results(raw_path):
@@ -46,8 +46,6 @@ for config_name in CONFIGS_TO_RUN:
     config = module.get_config()
 
     for learner in config["learners"]:
-        if learner["name"] == "x_cb":
-            continue
 
         print(f"  → Learner: {learner['name']}")
         print("-"*80)
@@ -56,7 +54,7 @@ for config_name in CONFIGS_TO_RUN:
         # -------------------------------------------------
 
         output_dir = os.path.join(
-            f"3-18results_R_{config['R']}",
+            f"results_R_{config['R']}",
             learner["name"],
             config["name"],
         )

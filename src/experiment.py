@@ -15,7 +15,8 @@ def run_experiment(
     base_seed=0,
     cv_plug=5,
     output_dir=None,
-    max_convergence_reps=None
+    max_convergence_reps=None,
+    completed_reps=None
 ):
 
     """
@@ -29,18 +30,26 @@ def run_experiment(
         Per-repetition PEHE values.
     """
 
+    if completed_reps is None:
+        completed_reps = set()
+
     learner_name = learner_config["name"]
 
+    # initialize raw_results 
     raw_results = {
         tuner["name"]: {
-            "pehe": np.zeros(R),
-            "pehe_plug": np.zeros(R),
+            "pehe": [],
+            "pehe_plug": [],
+            "rep": [],   # track which rep this belongs to
         }
         for tuner in tuners
     }
 
     print("Monte Carlo simulation starting...")
     for r in range(R):
+        if r in completed_reps:
+            print(f"  → Skipping repetition {r+1} (already completed)")
+            continue
         print(f"  → Repetition {r+1}/{R}")
         
         # Training dataset (80%)
@@ -63,11 +72,14 @@ def run_experiment(
             propensity_model=learner_config["propensity_model"],
         )
 
+
+
         for tuner in tuners:
+            tuner_name = tuner["name"]
 
             # Initialize convergence tracker
             tracker = None
-            if max_convergence_reps is not None and r < max_convergence_reps:
+            if max_convergence_reps is None or r < max_convergence_reps:
                 tracker = ConvergenceTracker(maximize=False)
 
             # Select correct argument name
@@ -129,8 +141,9 @@ def run_experiment(
                 cv=cv_plug
             )
 
-            raw_results[tuner["name"]]["pehe"][r] = pehe(tau_test, tau_hat)
-            raw_results[tuner["name"]]["pehe_plug"][r] = pehe(tau_plug, tau_hat)
+            raw_results[tuner_name]["pehe"].append(pehe(tau_test, tau_hat))
+            raw_results[tuner_name]["pehe_plug"].append(pehe(tau_plug, tau_hat))
+            raw_results[tuner_name]["rep"].append(r)
 
         print('*'*20 + "Tuning complete." + '*'*20)
 
@@ -140,10 +153,10 @@ def run_experiment(
         summary.append({
             "learner": learner_name,
             "tuner": tuner_name,
-            "pehe_mean": float(metrics["pehe"].mean()),
-            "pehe_var": float(metrics["pehe"].var(ddof=1)),
-            "pehe_plug_mean": float(metrics["pehe_plug"].mean()),
-            "pehe_plug_var": float(metrics["pehe_plug"].var(ddof=1)),
+            "pehe_mean": float(np.mean(metrics["pehe"])),
+            "pehe_var": float(np.var(metrics["pehe"], ddof=1)) if len(metrics["pehe"]) > 1 else 0.0,
+            "pehe_plug_mean": float(np.mean(metrics["pehe_plug"])),
+            "pehe_plug_var": float(np.var(metrics["pehe_plug"], ddof=1)) if len(metrics["pehe_plug"]) > 1 else 0.0,
         })
     print("Monte Carlo simulation complete.")
     return summary, raw_results

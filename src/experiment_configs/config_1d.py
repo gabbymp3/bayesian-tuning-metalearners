@@ -80,5 +80,5 @@ def get_config():
         "R": R,
         "dgp_params": dgp_params,
         "learners": learners,
-        "base_seed": 42
+        "base_seed": 64
     }
