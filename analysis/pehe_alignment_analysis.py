@@ -262,9 +262,16 @@ def plot_mse_vs_pehe(rep_df: pd.DataFrame, path: Path) -> None:
             )
 
     handles, labels = axes[0, 0].get_legend_handles_labels()
-    fig.legend(handles, labels, loc="upper center", ncol=2, frameon=False)
+    fig.legend(
+        handles,
+        labels,
+        loc="upper right",
+        bbox_to_anchor=(0.985, 0.955),
+        ncol=1,
+        frameon=False,
+    )
     fig.suptitle("Final tuning MSE versus PEHE by setting", fontsize=16, fontweight="bold", y=0.995)
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
+    fig.tight_layout(rect=[0, 0, 0.94, 0.93])
     plt.savefig(path, dpi=320, bbox_inches="tight")
     plt.close()
 
