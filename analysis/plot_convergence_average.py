@@ -36,9 +36,14 @@ def set_theme() -> None:
             "grid.linewidth": 0.7,
             "axes.spines.top": False,
             "axes.spines.right": False,
-            "font.size": 11,
-            "axes.titlesize": 13,
-            "axes.labelsize": 11,
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 12,
+            "ytick.labelsize": 12,
+            "legend.fontsize": 14,
+            "legend.title_fontsize": 15,
+            "figure.titlesize": 18,
         }
     )
 
@@ -156,13 +161,13 @@ def plot_convergence(averaged: pd.DataFrame, output_base: Path) -> None:
                     final_y,
                     f"{final_y:.3f}",
                     color=TUNER_COLORS[tuner],
-                    fontsize=10,
+                    fontsize=12,
                     va="center",
                 )
 
             ax.set_title(
                 f"{learner.upper()} {dimension.upper()}  Mean convergence across 30 reps",
-                fontsize=15,
+                fontsize=17,
                 fontweight="bold",
             )
             ax.set_xlabel("Tuning iteration")

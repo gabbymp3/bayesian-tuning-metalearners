@@ -8,6 +8,7 @@ from scipy.stats import pearsonr, spearmanr
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import seaborn as sns
+from matplotlib.patches import Patch
 
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -20,6 +21,22 @@ TUNER_COLORS = {
     "bayes": "#2A6F97",
     "random": "#C8553D",
 }
+
+
+def set_theme() -> None:
+    sns.set_theme(style="whitegrid")
+    plt.rcParams.update(
+        {
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 12,
+            "ytick.labelsize": 12,
+            "legend.fontsize": 12,
+            "legend.title_fontsize": 13,
+            "figure.titlesize": 18,
+        }
+    )
 
 
 def safe_corr(x: pd.Series, y: pd.Series, method: str) -> tuple[float, float]:
@@ -224,7 +241,7 @@ def build_win_rates(delta_df: pd.DataFrame) -> pd.DataFrame:
 
 
 def plot_mse_vs_pehe(rep_df: pd.DataFrame, path: Path) -> None:
-    sns.set_theme(style="whitegrid")
+    set_theme()
     fig, axes = plt.subplots(len(LEARNERS), len(DIMENSIONS), figsize=(18, 9), sharey=False)
 
     for row, learner in enumerate(LEARNERS):
@@ -246,7 +263,7 @@ def plot_mse_vs_pehe(rep_df: pd.DataFrame, path: Path) -> None:
             pearson_stat, _ = safe_corr(subset["final_tuning_mse"], subset["pehe"], "pearson")
             spearman_stat, _ = safe_corr(subset["final_tuning_mse"], subset["pehe"], "spearman")
 
-            ax.set_title(f"{learner.upper()} {dimension.upper()}")
+            ax.set_title(f"{learner.upper()} {dimension.upper()}", fontsize=17)
             ax.set_xlabel("Final tuning MSE")
             if col == 0:
                 ax.set_ylabel("PEHE")
@@ -257,7 +274,7 @@ def plot_mse_vs_pehe(rep_df: pd.DataFrame, path: Path) -> None:
                 transform=ax.transAxes,
                 va="top",
                 ha="left",
-                fontsize=10,
+                fontsize=12,
                 bbox={"facecolor": "white", "alpha": 0.8, "edgecolor": "none"},
             )
 
@@ -269,15 +286,16 @@ def plot_mse_vs_pehe(rep_df: pd.DataFrame, path: Path) -> None:
         bbox_to_anchor=(0.985, 0.955),
         ncol=1,
         frameon=False,
+        fontsize=15,
     )
-    fig.suptitle("Final tuning MSE versus PEHE by setting", fontsize=16, fontweight="bold", y=0.995)
+    fig.suptitle("Final tuning MSE versus PEHE by setting", fontsize=21, fontweight="bold", y=0.995)
     fig.tight_layout(rect=[0, 0, 0.94, 0.93])
     plt.savefig(path, dpi=320, bbox_inches="tight")
     plt.close()
 
 
 def plot_delta_scatter(delta_df: pd.DataFrame, path: Path) -> None:
-    sns.set_theme(style="whitegrid")
+    set_theme()
     fig, axes = plt.subplots(len(LEARNERS), len(DIMENSIONS), figsize=(18, 9), sharex=False, sharey=False)
 
     for row, learner in enumerate(LEARNERS):
@@ -315,19 +333,21 @@ def plot_delta_scatter(delta_df: pd.DataFrame, path: Path) -> None:
                 transform=ax.transAxes,
                 va="top",
                 ha="left",
-                fontsize=10,
+                fontsize=12,
                 bbox={"facecolor": "white", "alpha": 0.8, "edgecolor": "none"},
             )
 
-    fig.suptitle("Rep-level ΔMSE versus ΔPEHE", fontsize=16, fontweight="bold", y=0.995)
+    fig.suptitle("Rep-level ΔMSE versus ΔPEHE", fontsize=18, fontweight="bold", y=0.995)
     fig.tight_layout(rect=[0, 0, 1, 0.96])
     plt.savefig(path, dpi=320, bbox_inches="tight")
     plt.close()
 
 
 def plot_win_rates(win_df: pd.DataFrame, path: Path) -> None:
-    sns.set_theme(style="whitegrid")
+    set_theme()
     fig, axes = plt.subplots(1, len(LEARNERS), figsize=(12, 4.8), sharey=True)
+    bayes_color = "#2A6F97"
+    tie_color = "#DCEFFA"
 
     if len(LEARNERS) == 1:
         axes = [axes]
@@ -335,25 +355,51 @@ def plot_win_rates(win_df: pd.DataFrame, path: Path) -> None:
     for ax, learner in zip(axes, LEARNERS):
         subset = win_df[win_df["learner"] == learner].copy()
         subset["setting"] = subset["dimension"].str.upper()
-        ax.bar(subset["setting"], subset["bayes_win_rate"], color="#2A6F97", alpha=0.9)
+        ax.bar(subset["setting"], subset["bayes_win_rate"], color=bayes_color, alpha=0.95)
+        ax.bar(
+            subset["setting"],
+            subset["tie_rate"],
+            bottom=subset["bayes_win_rate"],
+            color=tie_color,
+            alpha=1.0,
+        )
         ax.axhline(0.5, color="#999999", linestyle="--", linewidth=1)
         ax.set_ylim(0, 1)
-        ax.set_title(f"{learner.upper()}")
+        ax.set_title(f"{learner.upper()}", pad=16, fontsize=16)
         ax.set_xlabel("Setting")
-        ax.set_ylabel("Bayes PEHE win rate")
+        ax.set_ylabel("Bayes win / tie rate")
+        ax.tick_params(axis="x", labelsize=14)
 
         for _, row in subset.iterrows():
+            annotation_y = row["bayes_win_rate"] + row["tie_rate"] + 0.03
+            annotation_cap = 0.97
+            if (learner, row["dimension"]) in {("x_cb", "2d"), ("x_rf", "1d")}:
+                annotation_y += 0.02
+                annotation_cap = 0.99
             ax.text(
                 row["setting"],
-                row["bayes_win_rate"] + 0.03,
-                f"{row['bayes_win_count']}/{row['n_pairs']}",
+                min(annotation_y, annotation_cap),
+                f"{row['bayes_win_count']}W / {row['tie_count']}T",
                 ha="center",
                 va="bottom",
-                fontsize=10,
+                fontsize=14,
             )
 
-    fig.suptitle("Bayes versus Random PEHE win rates", fontsize=16, fontweight="bold", y=0.99)
-    fig.tight_layout(rect=[0, 0, 1, 0.95])
+    legend_handles = [
+        Patch(facecolor=bayes_color, label="Bayes wins"),
+        Patch(facecolor=tie_color, label="Bayes-random tie"),
+    ]
+    fig.legend(
+        handles=legend_handles,
+        loc="upper center",
+        bbox_to_anchor=(0.5, 0.96),
+        ncol=2,
+        frameon=False,
+        fontsize=14,
+        title_fontsize=15,
+    )
+    fig.suptitle("Bayes versus Random PEHE win rates", fontsize=19, fontweight="bold", y=0.99)
+    fig.tight_layout(rect=[0, 0, 1, 0.92])
     plt.savefig(path, dpi=320, bbox_inches="tight")
     plt.close()
 

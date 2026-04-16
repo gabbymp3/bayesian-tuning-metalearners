@@ -87,9 +87,14 @@ def set_theme() -> None:
             "grid.linewidth": 0.7,
             "axes.spines.top": False,
             "axes.spines.right": False,
-            "font.size": 11,
-            "axes.titlesize": 13,
-            "axes.labelsize": 11,
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 12,
+            "ytick.labelsize": 12,
+            "legend.fontsize": 12,
+            "legend.title_fontsize": 13,
+            "figure.titlesize": 18,
         }
     )
 
@@ -166,7 +171,7 @@ def plot_diagnostics(aggregated: pd.DataFrame) -> None:
             fig.suptitle(
                 f"{learner.upper()} {dimension.upper()}  Bayes surrogate diagnostics",
                 y=0.995,
-                fontsize=15,
+                fontsize=17,
                 fontweight="bold",
             )
 
@@ -244,7 +249,7 @@ def plot_1d_fit(df: pd.DataFrame, learner: str, dimension: str, param_col: str) 
     fig.suptitle(
         f"{learner.upper()} {dimension.upper()}  Surrogate fit",
         y=0.995,
-        fontsize=15,
+        fontsize=17,
         fontweight="bold",
     )
 
@@ -292,7 +297,7 @@ def plot_parameter_slices(df: pd.DataFrame, learner: str, dimension: str, param_
     fig.suptitle(
         f"{learner.upper()} {dimension.upper()}  Parameter slices",
         y=0.995,
-        fontsize=15,
+        fontsize=17,
         fontweight="bold",
     )
     plt.tight_layout(rect=(0, 0, 1, 0.96))

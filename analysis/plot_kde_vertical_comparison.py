@@ -13,6 +13,22 @@ RESULTS_FOLDER = ROOT / "results_R_30"
 OUTPUT_DIR = ROOT / "plots_30" / "kde_vertical_comparison"
 
 
+def set_theme() -> None:
+    sns.set_theme(style="whitegrid")
+    plt.rcParams.update(
+        {
+            "font.size": 13,
+            "axes.titlesize": 15,
+            "axes.labelsize": 15,
+            "xtick.labelsize": 12,
+            "ytick.labelsize": 12,
+            "legend.fontsize": 14,
+            "legend.title_fontsize": 15,
+            "figure.titlesize": 18,
+        }
+    )
+
+
 def load_raw_results(results_folder: Path) -> pd.DataFrame:
     frames = []
 
@@ -99,9 +115,18 @@ def make_vertical_kde_plots(all_df: pd.DataFrame, output_dir: Path) -> None:
             axes[0].set_xlim(x_min - x_padding, x_max + x_padding)
 
             handles, labels = axes[0].get_legend_handles_labels()
-            fig.legend(handles, labels, title="Tuner", loc="upper right", ncol=len(tuners))
-            fig.suptitle(f"{learner.upper()} — {dim}D", fontsize=16)
-            fig.tight_layout(rect=[0, 0, 1, 0.95])
+            legend_y = 0.955 if dim in {"1", "2"} else 0.985
+            layout_top = 0.92 if dim in {"1", "2"} else 0.95
+            fig.legend(
+                handles,
+                labels,
+                title="Tuner",
+                loc="upper right",
+                ncol=len(tuners),
+                bbox_to_anchor=(0.98, legend_y),
+            )
+            fig.suptitle(f"{learner.upper()} — {dim}D", fontsize=18)
+            fig.tight_layout(rect=[0, 0, 1, layout_top])
 
             filename = output_dir / f"kde_{learner}_{dim}D_vertical.png"
             plt.savefig(filename, dpi=300, bbox_inches="tight")
@@ -110,7 +135,7 @@ def make_vertical_kde_plots(all_df: pd.DataFrame, output_dir: Path) -> None:
 
 
 def main() -> None:
-    sns.set_style("whitegrid")
+    set_theme()
     OUTPUT_DIR.mkdir(parents=True, exist_ok=True)
 
     all_df = load_raw_results(RESULTS_FOLDER)
